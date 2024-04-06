@@ -28,7 +28,8 @@ func (r *BannersRepo) Delete(ctx context.Context, bannerId int) error {
 	return nil
 }
 
-func (r *BannersRepo) GetUserBanner(ctx context.Context, userId int, tagId int, featureId int) (models.Banner, error) {
+func (r *BannersRepo) GetUserBanner(ctx context.Context, user models.User,
+	tagId int, featureId int, lastRevision bool) (models.Banner, error) {
 	return models.Banner{}, nil
 }
 
