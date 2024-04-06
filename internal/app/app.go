@@ -6,6 +6,8 @@ import (
 	"log"
 )
 
+// TODO rewrite initial script for DB; add users table with ids and their tags
+
 func Run(configPath string) {
 
 	cfg, err := config.Init(configPath)

@@ -3,11 +3,14 @@ package models
 import "time"
 
 type Banner struct {
-	ID    int    `json:"id"`
 	Title string `json:"title"`
 	Text  string `json:"text"`
 	URL   string `json:"url"`
+}
 
+type AdminBanner struct {
+	ID      int     `json:"id"`
+	Content Banner  `json:"content"`
 	Tags    []Tag   `json:"tags"`
 	Feature Feature `json:"feature"`
 
