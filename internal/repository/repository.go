@@ -2,7 +2,9 @@ package repository
 
 import (
 	"avito-test2024-spring/internal/models"
+	"avito-test2024-spring/internal/repository/postgresql"
 	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Banners interface {
@@ -41,4 +43,14 @@ type Admins interface {
 	Delete(ctx context.Context, adminId int) error
 	GetAdminById(ctx context.Context, adminId int) (models.Admin, error)
 	GetAllAdmins(ctx context.Context) ([]models.Admin, error)
+}
+
+type Repositories struct {
+	Banners Banners
+}
+
+func NewRepositories(db *pgxpool.Pool) *Repositories {
+	return &Repositories{
+		Banners: postgresql.NewBannersRepo(db),
+	}
 }
