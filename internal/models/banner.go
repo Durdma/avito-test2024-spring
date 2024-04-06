@@ -18,11 +18,9 @@ type Banner struct {
 }
 
 type Feature struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID int `json:"feature_id"`
 }
 
 type Tag struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID int `json:"tags_id"`
 }
