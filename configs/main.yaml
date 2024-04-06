@@ -1,0 +1,20 @@
+http:
+  port: 8080
+  readTimeout: 10s
+  writeTimeout: 10s
+
+logger:
+  level: 5
+  filepath: pkg/logger
+
+postgresql:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: zxc13243546
+  dbname: banners_db
+  sslmode: disabled
+  maxIdleConnections: 5
+  maxOpenConnections: 20
+  connectionMaxLifetime: 60s
+  driverName: postgres
