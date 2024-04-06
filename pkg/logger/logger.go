@@ -8,7 +8,6 @@ import (
 	"os"
 )
 
-// TODO add to config this params
 func InitLogs(cfg config.LoggerConfig) zerolog.Logger {
 	var writers []io.Writer
 
