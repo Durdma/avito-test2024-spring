@@ -5,7 +5,10 @@ http:
 
 logger:
   level: 5
-  filepath: pkg/logger
+  fileName: ../../pkg/logger/logger.json
+  maxSize: 5
+  maxBackups: 3
+  maxAge: 30
 
 postgresql:
   host: localhost

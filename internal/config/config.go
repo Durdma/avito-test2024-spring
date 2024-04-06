@@ -20,8 +20,11 @@ type Config struct {
 }
 
 type LoggerConfig struct {
-	LoggerLevel    int
-	LoggerFilePath string
+	Level      int
+	FileName   string
+	MaxSize    int
+	MaxBackups int
+	MaxAge     int
 }
 
 type HTTPConfig struct {
@@ -75,11 +78,7 @@ func parseConfigFile(filepath string) error {
 }
 
 func unmarshal(cfg *Config) error {
-	if err := viper.UnmarshalKey("logger.level", &cfg.Logger.LoggerLevel); err != nil {
-		return err
-	}
-
-	if err := viper.UnmarshalKey("loggger.file", &cfg.Logger.LoggerFilePath); err != nil {
+	if err := viper.UnmarshalKey("logger", &cfg.Logger); err != nil {
 		return err
 	}
 
