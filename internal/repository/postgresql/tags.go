@@ -95,7 +95,7 @@ func (r *TagsRepo) GetAllTags(ctx context.Context, limit int, offset int) ([]mod
 	}
 	defer rows.Close()
 
-	tags := make([]models.Tag, 0, limit)
+	tags := make([]models.Tag, 0)
 	for rows.Next() {
 		tag := models.Tag{}
 		err := rows.Scan(&tag.ID)

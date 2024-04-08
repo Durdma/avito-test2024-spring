@@ -20,14 +20,22 @@ type Tags interface {
 	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error)
 }
 
+type Features interface {
+	AddFeature(ctx context.Context) error
+	DeleteFeature(ctx context.Context, featureId int) error
+	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, error)
+}
+
 type Services struct {
-	Banners Banners
-	Tags    Tags
+	Banners  Banners
+	Tags     Tags
+	Features Features
 }
 
 func NewServices(repos *repository.Repositories) *Services {
 	return &Services{
-		Banners: NewBannersService(repos.Banners),
-		Tags:    NewTagsService(repos.Tags),
+		Banners:  NewBannersService(repos.Banners),
+		Tags:     NewTagsService(repos.Tags),
+		Features: NewFeaturesService(repos.Features),
 	}
 }

@@ -7,16 +7,18 @@ import (
 )
 
 type Handler struct {
-	bannersService service.Banners
-	tagsService    service.Tags
-	logger         zerolog.Logger
+	bannersService  service.Banners
+	tagsService     service.Tags
+	featuresService service.Features
+	logger          zerolog.Logger
 }
 
-func NewHandler(bannersService service.Banners, tagsService service.Tags, logger zerolog.Logger) *Handler {
+func NewHandler(bannersService service.Banners, tagsService service.Tags, featuresService service.Features, logger zerolog.Logger) *Handler {
 	return &Handler{
-		bannersService: bannersService,
-		tagsService:    tagsService,
-		logger:         logger,
+		bannersService:  bannersService,
+		tagsService:     tagsService,
+		featuresService: featuresService,
+		logger:          logger,
 	}
 }
 

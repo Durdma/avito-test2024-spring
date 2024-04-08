@@ -23,8 +23,8 @@ type Tags interface {
 }
 
 type Features interface {
-	Create(ctx context.Context, feature models.Feature) error
-	Update(ctx context.Context, feature models.Feature) error //TODO Нужно ли это в рамках задачи
+	Create(ctx context.Context) error
+	//Update(ctx context.Context, feature models.Feature) error //TODO Нужно ли это в рамках задачи
 	Delete(ctx context.Context, featureId int) error
 	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, error)
 }
@@ -46,13 +46,15 @@ type Admins interface {
 }
 
 type Repositories struct {
-	Banners Banners
-	Tags    Tags
+	Banners  Banners
+	Tags     Tags
+	Features Features
 }
 
 func NewRepositories(db *pgxpool.Pool) *Repositories {
 	return &Repositories{
-		Banners: postgresql.NewBannersRepo(db),
-		Tags:    postgresql.NewTagsRepo(db),
+		Banners:  postgresql.NewBannersRepo(db),
+		Tags:     postgresql.NewTagsRepo(db),
+		Features: postgresql.NewFeaturesRepo(db),
 	}
 }

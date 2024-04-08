@@ -9,16 +9,18 @@ import (
 )
 
 type Handler struct {
-	bannersService service.Banners
-	tagsService    service.Tags
-	logger         zerolog.Logger
+	bannersService  service.Banners
+	tagsService     service.Tags
+	featuresService service.Features
+	logger          zerolog.Logger
 }
 
-func NewHandler(bannersService service.Banners, tagsService service.Tags, logger zerolog.Logger) *Handler {
+func NewHandler(bannersService service.Banners, tagsService service.Tags, featuresService service.Features, logger zerolog.Logger) *Handler {
 	return &Handler{
-		bannersService: bannersService,
-		tagsService:    tagsService,
-		logger:         logger,
+		bannersService:  bannersService,
+		tagsService:     tagsService,
+		featuresService: featuresService,
+		logger:          logger,
 	}
 }
 
@@ -39,7 +41,7 @@ func (h *Handler) Init(host string, port string) *gin.Engine {
 }
 
 func (h *Handler) initAPI(router *gin.Engine) {
-	handlerV1 := httpv1.NewHandler(h.bannersService, h.tagsService, h.logger)
+	handlerV1 := httpv1.NewHandler(h.bannersService, h.tagsService, h.featuresService, h.logger)
 	api := router.Group("/api")
 	{
 		handlerV1.Init(api)
