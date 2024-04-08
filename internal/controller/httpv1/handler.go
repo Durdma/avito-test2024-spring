@@ -3,17 +3,20 @@ package httpv1
 import (
 	"avito-test2024-spring/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 )
 
 type Handler struct {
 	bannersService service.Banners
 	tagsService    service.Tags
+	logger         zerolog.Logger
 }
 
-func NewHandler(bannersService service.Banners, tagsService service.Tags) *Handler {
+func NewHandler(bannersService service.Banners, tagsService service.Tags, logger zerolog.Logger) *Handler {
 	return &Handler{
 		bannersService: bannersService,
 		tagsService:    tagsService,
+		logger:         logger,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"avito-test2024-spring/internal/models"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -54,8 +55,8 @@ func (r *TagsRepo) Delete(ctx context.Context, tagId int) error {
 	}
 
 	if res.RowsAffected() == 0 {
-		tx.Rollback(ctx) // TODO ADD custom error struct
-		return err
+		tx.Rollback(ctx)
+		return errors.New(fmt.Sprintf("tag with id=%v not found", tagId))
 	}
 
 	tx.Commit(ctx)
@@ -63,11 +64,20 @@ func (r *TagsRepo) Delete(ctx context.Context, tagId int) error {
 }
 
 func (r *TagsRepo) GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error) {
-	query := `SELECT * FROM tags offset @offsetIn limit @limitIn`
-	args := pgx.NamedArgs{
-		"offsetIn": offset,
-		"limitIn":  limit,
+	query := `SELECT * FROM tags order by id offset @offsetIn limit @limitIn`
+	args := pgx.NamedArgs{}
+	if limit == 0 {
+		query = `SELECT * FROM tags order by id offset @offsetIn`
+		args = pgx.NamedArgs{
+			"offsetIn": offset,
+		}
+	} else {
+		args = pgx.NamedArgs{
+			"offsetIn": offset,
+			"limitIn":  limit,
+		}
 	}
+
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -76,7 +86,7 @@ func (r *TagsRepo) GetAllTags(ctx context.Context, limit int, offset int) ([]mod
 	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			tx.Commit(ctx) // TODO add custom err for no records
+			tx.Commit(ctx)
 			return nil, err
 		}
 
@@ -85,10 +95,9 @@ func (r *TagsRepo) GetAllTags(ctx context.Context, limit int, offset int) ([]mod
 	}
 	defer rows.Close()
 
-	tags := make([]models.Tag, limit)
+	tags := make([]models.Tag, 0, limit)
 	for rows.Next() {
 		tag := models.Tag{}
-
 		err := rows.Scan(&tag.ID)
 		if err != nil {
 			tx.Rollback(ctx)

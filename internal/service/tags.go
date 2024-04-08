@@ -30,7 +30,7 @@ func (s *TagsService) DeleteTag(ctx context.Context, tagId int) error {
 }
 
 func (s *TagsService) GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error) {
-	if limit <= 0 {
+	if limit < 0 {
 		return nil, errors.New("limit must be greater than 0")
 	}
 
