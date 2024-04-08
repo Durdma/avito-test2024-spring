@@ -7,11 +7,13 @@ import (
 
 type Handler struct {
 	bannersService service.Banners
+	tagsService    service.Tags
 }
 
-func NewHandler(bannersService service.Banners) *Handler {
+func NewHandler(bannersService service.Banners, tagsService service.Tags) *Handler {
 	return &Handler{
 		bannersService: bannersService,
+		tagsService:    tagsService,
 	}
 }
 
@@ -19,5 +21,6 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 	v1 := api.Group("/v1")
 	{
 		h.initBannersRoutes(v1)
+		h.initTagsFeaturesRoutes(v1)
 	}
 }

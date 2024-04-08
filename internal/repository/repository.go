@@ -47,10 +47,12 @@ type Admins interface {
 
 type Repositories struct {
 	Banners Banners
+	Tags    Tags
 }
 
 func NewRepositories(db *pgxpool.Pool) *Repositories {
 	return &Repositories{
 		Banners: postgresql.NewBannersRepo(db),
+		Tags:    postgresql.NewTagsRepo(db),
 	}
 }

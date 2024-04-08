@@ -37,7 +37,7 @@ func Run(configPath string) {
 	services := service.NewServices(repos)
 	logs.Info().Msg("Initialized services")
 
-	handlers := controller.NewHandler(services.Banners)
+	handlers := controller.NewHandler(services.Banners, services.Tags)
 	logs.Info().Msg("Initialized handlers")
 
 	srv := server.NewServer(cfg.HTTP, handlers.Init("local", cfg.HTTP.Port))

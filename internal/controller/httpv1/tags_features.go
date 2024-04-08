@@ -1,6 +1,9 @@
 package httpv1
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
 func (h *Handler) initTagsFeaturesRoutes(api *gin.RouterGroup) {
 	tags := api.Group("/tags")
@@ -18,7 +21,15 @@ func (h *Handler) initTagsFeaturesRoutes(api *gin.RouterGroup) {
 	}
 }
 
-func (h *Handler) addTag(ctx *gin.Context) {}
+func (h *Handler) addTag(ctx *gin.Context) {
+	err := h.tagsService.AddTag(ctx)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusInternalServerError) // TODO add custom error
+		return
+	}
+
+	ctx.AbortWithStatus(http.StatusCreated)
+}
 
 func (h *Handler) deleteTag(ctx *gin.Context) {}
 

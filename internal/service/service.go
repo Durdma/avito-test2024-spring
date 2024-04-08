@@ -14,12 +14,20 @@ type Banners interface {
 	GetAllBanners(ctx context.Context) ([]models.AdminBanner, error)
 }
 
+type Tags interface {
+	AddTag(ctx context.Context) error
+	DeleteTag(ctx context.Context, tagId int) error
+	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error)
+}
+
 type Services struct {
 	Banners Banners
+	Tags    Tags
 }
 
 func NewServices(repos *repository.Repositories) *Services {
 	return &Services{
 		Banners: NewBannersService(repos.Banners),
+		Tags:    NewTagsService(repos.Tags),
 	}
 }
