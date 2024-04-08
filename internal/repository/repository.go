@@ -16,8 +16,8 @@ type Banners interface {
 }
 
 type Tags interface {
-	Create(ctx context.Context, tag models.Tag) error
-	Update(ctx context.Context, tag models.Tag) error //TODO Нужно ли это в рамках задачи
+	Create(ctx context.Context) error
+	//Update(ctx context.Context, tag models.Tag) error //TODO Нужно ли это в рамках задачи
 	Delete(ctx context.Context, tagId int) error
 	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error)
 }

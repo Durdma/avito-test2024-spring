@@ -62,15 +62,18 @@ func (r *TagsRepo) Delete(ctx context.Context, tagId int) error {
 	return nil
 }
 
-func (r *TagsRepo) GetAllTags(ctx context.Context) ([]models.Tag, error) {
-	query := `SELECT id FROM tags`
-
+func (r *TagsRepo) GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error) {
+	query := `SELECT * FROM tags offset @offsetIn limit @limitIn`
+	args := pgx.NamedArgs{
+		"offsetIn": offset,
+		"limitIn":  limit,
+	}
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			tx.Commit(ctx) // TODO add custom err for no records
@@ -82,7 +85,7 @@ func (r *TagsRepo) GetAllTags(ctx context.Context) ([]models.Tag, error) {
 	}
 	defer rows.Close()
 
-	tags := make([]models.Tag, 0)
+	tags := make([]models.Tag, limit)
 	for rows.Next() {
 		tag := models.Tag{}
 
