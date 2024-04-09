@@ -17,6 +17,7 @@ type Config struct {
 	PostgreSQL PostgreSQLConfig
 	HTTP       HTTPConfig
 	Logger     LoggerConfig
+	JWT        JWTConfig
 }
 
 type LoggerConfig struct {
@@ -44,6 +45,12 @@ type PostgreSQLConfig struct {
 	MaxOpenConnections    int
 	ConnectionMaxLifeTime time.Duration
 	DriverName            string
+}
+
+type JWTConfig struct {
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
+	SigningKey      string
 }
 
 func Init(path string) (*Config, error) {
@@ -87,6 +94,10 @@ func unmarshal(cfg *Config) error {
 	}
 
 	if err := viper.UnmarshalKey("postgresql", &cfg.PostgreSQL); err != nil {
+		return err
+	}
+
+	if err := viper.UnmarshalKey("jwt", &cfg.JWT); err != nil {
 		return err
 	}
 

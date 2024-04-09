@@ -3,17 +3,27 @@ package service
 import (
 	"avito-test2024-spring/internal/models"
 	"avito-test2024-spring/internal/repository"
+	"avito-test2024-spring/pkg/auth"
 	"context"
 	"errors"
+	"time"
 )
 
 type TagsService struct {
-	repo repository.Tags
+	repo         repository.Tags
+	tokenManager auth.TokenManager
+
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
 }
 
-func NewTagsService(repo repository.Tags) *TagsService {
+func NewTagsService(repo repository.Tags, tokenManager auth.TokenManager,
+	accessTokenTTL time.Duration, refreshTokenTTL time.Duration) *TagsService {
 	return &TagsService{
-		repo: repo,
+		repo:            repo,
+		tokenManager:    tokenManager,
+		accessTokenTTL:  accessTokenTTL,
+		refreshTokenTTL: refreshTokenTTL,
 	}
 }
 

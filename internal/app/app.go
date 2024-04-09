@@ -6,6 +6,7 @@ import (
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/internal/server"
 	"avito-test2024-spring/internal/service"
+	"avito-test2024-spring/pkg/auth"
 	"avito-test2024-spring/pkg/database/postgresql"
 	"avito-test2024-spring/pkg/logger"
 	"log"
@@ -34,10 +35,16 @@ func Run(configPath string) {
 	repos := repository.NewRepositories(dbPool)
 	logs.Info().Msg("Initialized repos")
 
-	services := service.NewServices(repos)
+	tokenManager, err := auth.NewManager(cfg.JWT.SigningKey)
+	if err != nil {
+		logs.Error().Err(err).Msg("error occured while init of token manager")
+	}
+	logs.Info().Msg("Initialized tokenManager")
+
+	services := service.NewServices(repos, tokenManager, cfg.JWT.AccessTokenTTL, cfg.JWT.RefreshTokenTTL)
 	logs.Info().Msg("Initialized services")
 
-	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, logs)
+	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, services.Users, logs, tokenManager)
 	logs.Info().Msg("Initialized handlers")
 
 	srv := server.NewServer(cfg.HTTP, handlers.Init("local", cfg.HTTP.Port))

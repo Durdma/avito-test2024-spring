@@ -5,6 +5,7 @@ import (
 	"avito-test2024-spring/internal/repository/postgresql"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
 
 type Banners interface {
@@ -30,25 +31,18 @@ type Features interface {
 }
 
 type Users interface {
-	Create(ctx context.Context, tagId int) (string, error) // string - accessToken для использования
-	Update(ctx context.Context, userId int, tagId int) error
+	Create(ctx context.Context, user models.User, refreshToken string, expiresAt time.Time) (int, error)
+	Update(ctx context.Context, user models.User, tagId int) error
 	Delete(ctx context.Context, userId int) error
 	GetUserById(ctx context.Context, userId int) (models.User, error)
 	GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, error)
-}
-
-type Admins interface {
-	Create(ctx context.Context) (string, error)           //string - accessToken для использования
-	Update(ctx context.Context, admin models.Admin) error //TODO Нужно ли это в рамках задачи
-	Delete(ctx context.Context, adminId int) error
-	GetAdminById(ctx context.Context, adminId int) (models.Admin, error)
-	GetAllAdmins(ctx context.Context) ([]models.Admin, error)
 }
 
 type Repositories struct {
 	Banners  Banners
 	Tags     Tags
 	Features Features
+	Users    Users
 }
 
 func NewRepositories(db *pgxpool.Pool) *Repositories {
@@ -56,5 +50,6 @@ func NewRepositories(db *pgxpool.Pool) *Repositories {
 		Banners:  postgresql.NewBannersRepo(db),
 		Tags:     postgresql.NewTagsRepo(db),
 		Features: postgresql.NewFeaturesRepo(db),
+		Users:    postgresql.NewUsersRepo(db),
 	}
 }
