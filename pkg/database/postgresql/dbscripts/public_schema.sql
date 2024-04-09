@@ -48,8 +48,6 @@ create table users (
     id bigserial not null,
     fk_tag_id int,
     is_admin bool not null default false,
-    refresh_token varchar,
-    expires_at date,
     primary key (id),
     constraint fk_tag
     foreign key (fk_tag_id) references tags(id)
