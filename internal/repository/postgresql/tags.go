@@ -68,14 +68,17 @@ func (r *TagsRepo) GetAllTags(ctx context.Context, limit int, offset int) ([]mod
 	args := pgx.NamedArgs{}
 	if limit == 0 {
 		query = `SELECT * FROM tags order by id offset @offsetIn`
-		args = pgx.NamedArgs{
-			"offsetIn": offset,
-		}
+		//args = pgx.NamedArgs{
+		//	"offsetIn": offset,
+		//}
+		args["offsetIn"] = offset
 	} else {
-		args = pgx.NamedArgs{
-			"offsetIn": offset,
-			"limitIn":  limit,
-		}
+		//args = pgx.NamedArgs{
+		//	"offsetIn": offset,
+		//	"limitIn":  limit,
+		//}
+		args["offsetIn"] = offset
+		args["limitIn"] = limit
 	}
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})

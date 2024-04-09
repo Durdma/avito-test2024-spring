@@ -5,7 +5,6 @@ import (
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
 	"context"
-	"time"
 )
 
 type Banners interface {
@@ -30,6 +29,10 @@ type Features interface {
 
 type Users interface {
 	AddUser(ctx context.Context, input UserAddInput) (string, error)
+	UpdateUser(ctx context.Context, input models.User) error
+	DeleteUser(ctx context.Context, userId int) error
+	GetUserById(ctx context.Context, userId int) (models.User, error)
+	GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, error)
 }
 
 type Services struct {
@@ -39,12 +42,11 @@ type Services struct {
 	Users    Users
 }
 
-func NewServices(repos *repository.Repositories, tokenManager auth.TokenManager,
-	accessTTL time.Duration, refreshTTL time.Duration) *Services {
+func NewServices(repos *repository.Repositories, tokenManager auth.TokenManager) *Services {
 	return &Services{
-		Banners:  NewBannersService(repos.Banners, tokenManager, accessTTL, refreshTTL),
-		Tags:     NewTagsService(repos.Tags, tokenManager, accessTTL, refreshTTL),
-		Features: NewFeaturesService(repos.Features, tokenManager, accessTTL, refreshTTL),
-		Users:    NewUsersService(repos.Users, tokenManager, accessTTL, refreshTTL),
+		Banners:  NewBannersService(repos.Banners, tokenManager),
+		Tags:     NewTagsService(repos.Tags),
+		Features: NewFeaturesService(repos.Features),
+		Users:    NewUsersService(repos.Users, tokenManager),
 	}
 }

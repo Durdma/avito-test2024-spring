@@ -5,7 +5,6 @@ import (
 	"avito-test2024-spring/internal/repository/postgresql"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 )
 
 type Banners interface {
@@ -31,8 +30,8 @@ type Features interface {
 }
 
 type Users interface {
-	Create(ctx context.Context, user models.User, refreshToken string, expiresAt time.Time) (int, error)
-	Update(ctx context.Context, user models.User, tagId int) error
+	Create(ctx context.Context, user models.User) (int, error)
+	Update(ctx context.Context, user models.User) error
 	Delete(ctx context.Context, userId int) error
 	GetUserById(ctx context.Context, userId int) (models.User, error)
 	GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, error)

@@ -3,27 +3,17 @@ package service
 import (
 	"avito-test2024-spring/internal/models"
 	"avito-test2024-spring/internal/repository"
-	"avito-test2024-spring/pkg/auth"
 	"context"
 	"errors"
-	"time"
 )
 
 type FeaturesService struct {
-	repo         repository.Features
-	tokenManager auth.TokenManager
-
-	accessTokenTTL  time.Duration
-	refreshTokenTTL time.Duration
+	repo repository.Features
 }
 
-func NewFeaturesService(repo repository.Features, tokenManager auth.TokenManager,
-	accessTokenTTL time.Duration, refreshTokenTTL time.Duration) *FeaturesService {
+func NewFeaturesService(repo repository.Features) *FeaturesService {
 	return &FeaturesService{
-		repo:            repo,
-		tokenManager:    tokenManager,
-		accessTokenTTL:  accessTokenTTL,
-		refreshTokenTTL: refreshTokenTTL,
+		repo: repo,
 	}
 }
 

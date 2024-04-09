@@ -4,8 +4,6 @@ http:
   writeTimeout: 10s
 
 jwt:
-  accessTokenTTL: 43200m
-  refreshTokenTTL: 86400m
   signingKey: test
 
 logger:

@@ -5,24 +5,17 @@ import (
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
 	"context"
-	"time"
 )
 
 type BannersService struct {
 	repo         repository.Banners
 	tokenManager auth.TokenManager
-
-	accessTokenTTL  time.Duration
-	refreshTokenTTL time.Duration
 }
 
-func NewBannersService(repo repository.Banners, tokenManager auth.TokenManager,
-	accessTokenTTL time.Duration, refreshTokenTTL time.Duration) *BannersService {
+func NewBannersService(repo repository.Banners, tokenManager auth.TokenManager) *BannersService {
 	return &BannersService{
-		repo:            repo,
-		tokenManager:    tokenManager,
-		accessTokenTTL:  accessTokenTTL,
-		refreshTokenTTL: refreshTokenTTL,
+		repo:         repo,
+		tokenManager: tokenManager,
 	}
 }
 

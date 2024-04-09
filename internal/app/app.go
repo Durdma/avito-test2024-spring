@@ -41,7 +41,7 @@ func Run(configPath string) {
 	}
 	logs.Info().Msg("Initialized tokenManager")
 
-	services := service.NewServices(repos, tokenManager, cfg.JWT.AccessTokenTTL, cfg.JWT.RefreshTokenTTL)
+	services := service.NewServices(repos, tokenManager)
 	logs.Info().Msg("Initialized services")
 
 	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, services.Users, logs, tokenManager)

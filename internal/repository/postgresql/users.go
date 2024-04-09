@@ -3,9 +3,11 @@ package postgresql
 import (
 	"avito-test2024-spring/internal/models"
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 )
 
 type UsersRepo struct {
@@ -18,24 +20,20 @@ func NewUsersRepo(db *pgxpool.Pool) *UsersRepo {
 	}
 }
 
-func (r *UsersRepo) Create(ctx context.Context, user models.User, refreshToken string, expiresAt time.Time) (int, error) {
+func (r *UsersRepo) Create(ctx context.Context, user models.User) (int, error) {
 	var id int
 
-	query := `INSERT INTO users (is_admin, fk_tag_id, refresh_token, expires_at) values (@isAdmin, @tagId, @refreshToken, @expiresAt) returning id`
+	query := `INSERT INTO users (is_admin, fk_tag_id) values (@isAdmin, @tagId) returning id`
 	args := pgx.NamedArgs{}
 	if user.TagId == 0 {
 		query = `INSERT INTO users (is_admin) values (@isAdmin) returning id`
 		args = pgx.NamedArgs{
-			"isAdmin":      user.IsAdmin,
-			"refreshToken": refreshToken,
-			"expiresAt":    expiresAt,
+			"isAdmin": user.IsAdmin,
 		}
 	} else {
 		args = pgx.NamedArgs{
-			"isAdmin":      user.IsAdmin,
-			"tagId":        user.TagId,
-			"refreshToken": refreshToken,
-			"expiresAt":    expiresAt,
+			"isAdmin": user.IsAdmin,
+			"tagId":   user.TagId,
 		}
 	}
 
@@ -54,30 +52,142 @@ func (r *UsersRepo) Create(ctx context.Context, user models.User, refreshToken s
 	return id, nil
 }
 
-func (r *UsersRepo) Update(ctx context.Context, user models.User, tagId int) error {
+func (r *UsersRepo) Update(ctx context.Context, user models.User) error {
+	query := `UPDATE users SET fk_tag_id = @tagId, is_admin = @isAdmin WHERE id = @userId`
+	args := pgx.NamedArgs{}
+	if user.TagId == 0 {
+		args["tagId"] = sql.NullInt64{}
+	} else {
+		args["tagId"] = user.TagId
+	}
+
+	args["isAdmin"] = user.IsAdmin
+	args["userId"] = user.Id
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	res, err := tx.Exec(ctx, query, args)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	if res.RowsAffected() == 0 {
+		tx.Rollback(ctx)
+		return errors.New(fmt.Sprintf("user with id=%v not found", user.Id))
+	}
+
+	tx.Commit(ctx)
 	return nil
 }
 
 func (r *UsersRepo) Delete(ctx context.Context, userId int) error {
+	query := `DELETE FROM users WHERE id=@userId`
+	args := pgx.NamedArgs{
+		"userId": userId,
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	res, err := tx.Exec(ctx, query, args)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	if res.RowsAffected() == 0 {
+		tx.Rollback(ctx)
+		return errors.New(fmt.Sprintf("user with id=%v not found", userId))
+	}
+
+	tx.Commit(ctx)
 	return nil
 }
 
 func (r *UsersRepo) GetUserById(ctx context.Context, userId int) (models.User, error) {
-	return models.User{}, nil
+	var user models.User
+
+	query := `SELECT id, COALESCE(fk_tag_id::bigint, 0), is_admin FROM users where id=@userId`
+	args := pgx.NamedArgs{
+		"userId": userId,
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return models.User{}, err
+	}
+
+	err = tx.QueryRow(ctx, query, args).Scan(&user.Id, &user.TagId, &user.IsAdmin)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			tx.Rollback(ctx)
+			return models.User{}, errors.New(fmt.Sprintf("user with id=%v not found", userId))
+		}
+
+		tx.Rollback(ctx)
+		return models.User{}, err
+	}
+
+	tx.Commit(ctx)
+	return user, nil
 }
 
 func (r *UsersRepo) GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, error) {
-	return nil, nil
-}
+	query := `SELECT id, COALESCE(fk_tag_id::bigint, 0), is_admin FROM users`
+	args := pgx.NamedArgs{}
 
-func (r *UsersRepo) GetByCredentials(ctx context.Context, userId int) (models.User, error) {
-	return models.User{}, nil
-}
+	if tagId != 0 {
+		query += ` WHERE fk_tag_id=@tagId`
+		args["tagId"] = tagId
+	}
 
-func (r *UsersRepo) GetByRefreshToken(ctx context.Context, refreshToken string) (models.User, error) {
-	return models.User{}, nil
-}
+	query += ` ORDER BY id`
 
-func (r *UsersRepo) SetSession(ctx context.Context, userId int, refreshToken string, refreshTokenTTL time.Duration) error {
-	return nil
+	if offset != 0 {
+		query += ` OFFSET @offsetIn`
+		args["offsetIn"] = offset
+	}
+
+	if limit != 0 {
+		query += ` LIMIT @limitIn`
+		args["limitIn"] = limit
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := tx.Query(ctx, query, args)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			tx.Commit(ctx)
+			return nil, err
+		}
+
+		tx.Rollback(ctx)
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make([]models.User, 0)
+	for rows.Next() {
+		user := models.User{}
+		err := rows.Scan(&user.Id, &user.TagId, &user.IsAdmin)
+		if err != nil {
+			tx.Rollback(ctx)
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	tx.Commit(ctx)
+	return users, nil
 }

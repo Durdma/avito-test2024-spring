@@ -48,9 +48,7 @@ type PostgreSQLConfig struct {
 }
 
 type JWTConfig struct {
-	AccessTokenTTL  time.Duration
-	RefreshTokenTTL time.Duration
-	SigningKey      string
+	SigningKey string
 }
 
 func Init(path string) (*Config, error) {
