@@ -2,6 +2,7 @@ package httpv1
 
 import (
 	"avito-test2024-spring/internal/service"
+	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -68,21 +69,22 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-type bannersUpdateContent struct {
-	Title string `json:"title,omitempty"`
-	Text  string `json:"text,omitempty"`
-	URL   string `json:"url,omitempty"`
-}
-
-type bannersUpdateInput struct {
-	Tags     []int                `json:"tags,omitempty"`
-	Feature  int                  `json:"feature,omitempty"`
-	Content  bannersUpdateContent `json:"content,omitempty"`
-	IsActive bool                 `json:"is_active,omitempty"`
-}
-
 func (h *Handler) bannersUpdate(ctx *gin.Context) {
+	serviceCtx := context.WithValue(ctx, "request_body", ctx.Request.Body)
+	serviceCtx = context.WithValue(serviceCtx, "banner_id", ctx.Param("id"))
 
+	err := h.bannersService.UpdateBanner(serviceCtx)
+	if err != nil {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("error while adding to db")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func (h *Handler) bannersDelete(ctx *gin.Context) {}

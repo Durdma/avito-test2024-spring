@@ -5,6 +5,9 @@ import (
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
 	"context"
+	"encoding/json"
+	"io"
+	"strconv"
 	"time"
 )
 
@@ -62,10 +65,87 @@ func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) er
 	return s.repo.Create(ctx, banner)
 }
 
-type BannerUpdateInput struct {
+type bannersUpdateContent struct {
+	Title string `json:"title,omitempty"`
+	Text  string `json:"text,omitempty"`
+	URL   string `json:"url,omitempty"`
 }
 
-func (s *BannersService) UpdateBanner(ctx context.Context, input BannerUpdateInput) error {
+type bannersUpdateInput struct {
+	Tags     []int                `json:"tags_ids,omitempty"`
+	Feature  int                  `json:"feature_id,omitempty"`
+	Content  bannersUpdateContent `json:"content,omitempty"`
+	IsActive bool                 `json:"is_active,omitempty"`
+}
+
+func (i *bannersUpdateInput) setTags(tags []models.Tag) {
+	for _, t := range tags {
+		i.Tags = append(i.Tags, t.ID)
+	}
+}
+
+func (s *BannersService) UpdateBanner(ctx context.Context) error {
+	bannerId, err := strconv.Atoi(ctx.Value("banner_id").(string))
+	if err != nil {
+		return err
+	}
+
+	bannerOld, err := s.repo.GetBannerByID(ctx, bannerId)
+	if err != nil {
+		return err
+	}
+
+	bannerInput := bannersUpdateInput{
+		Feature: bannerOld.Feature.ID,
+		Content: bannersUpdateContent{
+			Title: bannerOld.Content.Title,
+			Text:  bannerOld.Content.Text,
+			URL:   bannerOld.Content.URL,
+		},
+		IsActive: bannerOld.IsActive,
+	}
+
+	bannerInput.setTags(bannerOld.Tags)
+
+	if err := json.NewDecoder(ctx.Value("request_body").(io.Reader)).Decode(&bannerInput); err != nil {
+		return err
+	}
+
+	var banner models.AdminBanner
+
+	bannerContent := models.Banner{
+		Title: bannerInput.Content.Title,
+		Text:  bannerInput.Content.Text,
+		URL:   bannerInput.Content.URL,
+	}
+
+	err = bannerContent.ValidateBanner()
+	if err != nil {
+		return err
+	}
+
+	banner.Content = bannerContent
+
+	err = banner.ValidateAndSetFeature(bannerInput.Feature)
+	if err != nil {
+		return err
+	}
+
+	err = banner.ValidateAndSetTags(bannerInput.Tags)
+	if err != nil {
+		return err
+	}
+
+	banner.CreatedAt = bannerOld.CreatedAt
+	banner.UpdatedAt = time.Now()
+	banner.ID = bannerId
+	banner.IsActive = bannerInput.IsActive
+
+	err = s.repo.Update(ctx, banner)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
