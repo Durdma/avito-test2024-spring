@@ -101,6 +101,28 @@ func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner) err
 }
 
 func (r *BannersRepo) Delete(ctx context.Context, bannerId int) error {
+	query := `DELETE FROM banners WHERE id=@bannerId`
+	args := pgx.NamedArgs{
+		"bannerId": bannerId,
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	res, err := tx.Exec(ctx, query, args)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	if res.RowsAffected() == 0 {
+		tx.Rollback(ctx)
+		return errors.New(fmt.Sprintf("banner with id=%v not found", bannerId))
+	}
+
+	tx.Commit(ctx)
 	return nil
 }
 

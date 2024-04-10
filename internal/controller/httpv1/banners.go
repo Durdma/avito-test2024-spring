@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
@@ -87,7 +89,41 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func (h *Handler) bannersDelete(ctx *gin.Context) {}
+func (h *Handler) bannersDelete(ctx *gin.Context) {
+	bannerId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid id format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.bannersService.DeleteBanner(ctx, bannerId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.logger.Error().Err(err).
+				Str("method", ctx.Request.Method).
+				Str("url", ctx.Request.RequestURI).
+				Int("status_code", http.StatusNotFound).
+				Msg("")
+			newErrorResponse(ctx, http.StatusNotFound, err.Error())
+			return
+		}
+
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusInternalServerError).
+			Msg("")
+		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
 
 func (h *Handler) bannersGetAll(ctx *gin.Context) {}
 

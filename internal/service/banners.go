@@ -6,6 +6,7 @@ import (
 	"avito-test2024-spring/pkg/auth"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"strconv"
 	"time"
@@ -150,7 +151,11 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 }
 
 func (s *BannersService) DeleteBanner(ctx context.Context, bannerId int) error {
-	return nil
+	if bannerId <= 0 {
+		return errors.New("banner id must be greater than 0")
+	}
+
+	return s.repo.Delete(ctx, bannerId)
 }
 
 type BannerGetByUserInput struct {
