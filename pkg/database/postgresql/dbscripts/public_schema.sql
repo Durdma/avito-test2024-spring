@@ -22,8 +22,8 @@ create table banners (
     text varchar(1000) not null,
     url varchar not null,
     is_active bool not null default true,
-    created_at date not null,
-    updated_at date not null,
+    created_at timestamp not null,
+    updated_at timestamp not null,
     primary key (id),
     constraint fk_feature
     foreign key (fk_feature_id) references features(id)

@@ -5,6 +5,7 @@ import (
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
 	"context"
+	"time"
 )
 
 type BannersService struct {
@@ -28,6 +29,7 @@ type BannerAddInput struct {
 	IsActive bool
 }
 
+// TODO add created_at and update_at fields update
 func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) error {
 	var banner models.AdminBanner
 
@@ -53,6 +55,9 @@ func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) er
 	if err != nil {
 		return err
 	}
+
+	banner.CreatedAt = time.Now()
+	banner.UpdatedAt = time.Now()
 
 	return s.repo.Create(ctx, banner)
 }
