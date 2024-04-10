@@ -1,6 +1,11 @@
 package httpv1
 
-import "github.com/gin-gonic/gin"
+import (
+	"avito-test2024-spring/internal/service"
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
 func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
 	banners := api.Group("/") // add auth middleware for admin
@@ -31,6 +36,36 @@ type bannersAddInput struct {
 }
 
 func (h *Handler) bannersAdd(ctx *gin.Context) {
+	var banner bannersAddInput
+	if err := json.NewDecoder(ctx.Request.Body).Decode(&banner); err != nil {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("error while unmarshalling json")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err := h.bannersService.AddBanner(ctx, service.BannerAddInput{
+		Title:    banner.Content.Title,
+		Text:     banner.Content.Text,
+		URL:      banner.Content.URL,
+		Tags:     banner.Tags,
+		Feature:  banner.Feature,
+		IsActive: banner.IsActive,
+	})
+	if err != nil {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("error while adding to db")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }
 
 type bannersUpdateContent struct {

@@ -29,7 +29,32 @@ type BannerAddInput struct {
 }
 
 func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) error {
-	return nil
+	var banner models.AdminBanner
+
+	bannerContent := models.Banner{
+		Title: input.Title,
+		Text:  input.Text,
+		URL:   input.URL,
+	}
+
+	err := bannerContent.ValidateBanner()
+	if err != nil {
+		return err
+	}
+
+	banner.Content = bannerContent
+
+	err = banner.ValidateAndSetFeature(input.Feature)
+	if err != nil {
+		return err
+	}
+
+	err = banner.ValidateAndSetTags(input.Tags)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.Create(ctx, banner)
 }
 
 type BannerUpdateInput struct {

@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// TODO refactor query builders like in users repo
 type Banners interface {
 	Create(ctx context.Context, banner models.AdminBanner) error
 	Update(ctx context.Context, banner models.AdminBanner) error

@@ -17,9 +17,10 @@ create table features (
 
 create table banners (
     id bigserial not null,
-    fk_feature_id bigserial,
-    title varchar(250) not null,
+    fk_feature_id int,
+    title varchar(255) not null,
     text varchar(1000) not null,
+    url varchar not null,
     is_active bool not null default true,
     created_at date not null,
     updated_at date not null,
@@ -35,8 +36,8 @@ create table tags (
 );
 
 create table banners_tags (
-    fk_banner_id bigserial not null,
-    fk_tag_id bigserial not null,
+    fk_banner_id int not null,
+    fk_tag_id int not null,
     primary key (fk_banner_id, fk_tag_id),
     foreign key (fk_banner_id) references banners(id)
         on delete cascade on update restrict,
