@@ -18,7 +18,7 @@ type Banner struct {
 type AdminBanner struct {
 	ID      int     `json:"id"`
 	Content Banner  `json:"content"`
-	Tags    []Tag   `json:"tags"`
+	Tags    []Tag   `json:"tags_ids"`
 	Feature Feature `json:"feature"`
 
 	IsActive bool `json:"is_active"`

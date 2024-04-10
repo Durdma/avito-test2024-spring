@@ -4,6 +4,7 @@ import (
 	"avito-test2024-spring/internal/service"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -37,6 +38,8 @@ type bannersAddInput struct {
 	Content  bannersAddContent `json:"content" binding:"required"`
 	IsActive bool              `json:"is_active" binding:"required"`
 }
+
+// TODO refactor response json like in api docs
 
 func (h *Handler) bannersAdd(ctx *gin.Context) {
 	var banner bannersAddInput
@@ -125,6 +128,79 @@ func (h *Handler) bannersDelete(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func (h *Handler) bannersGetAll(ctx *gin.Context) {}
+func (h *Handler) bannersGetAll(ctx *gin.Context) {
+	limit, err := strconv.Atoi(ctx.Query("limit"))
+	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid limit format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if ctx.Query("limit") == "" {
+		limit = 0
+	}
+
+	offset, err := strconv.Atoi(ctx.Query("offset"))
+	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("offset") != "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid offset format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if ctx.Query("offset") == "" {
+		offset = 0
+	}
+
+	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
+	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid tag_id format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if ctx.Query("tag_id") == "" {
+		tagId = 0
+	}
+
+	featureId, err := strconv.Atoi(ctx.Query("feature_id"))
+	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("feature_id") != "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid feature_id format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if ctx.Query("feature_id") == "" {
+		featureId = 0
+	}
+
+	banners, err := h.bannersService.GetAllBanners(ctx, featureId, tagId, limit, offset)
+	if err != nil {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusInternalServerError).
+			Msg("")
+		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, banners)
+}
 
 func (h *Handler) getUserBanner(ctx *gin.Context) {}

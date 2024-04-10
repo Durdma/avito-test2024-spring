@@ -12,7 +12,7 @@ type Banners interface {
 	UpdateBanner(ctx context.Context) error
 	DeleteBanner(ctx context.Context, bannerId int) error
 	GetUserBanner(ctx context.Context, input BannerGetByUserInput) (models.Banner, error)
-	GetAllBanners(ctx context.Context) ([]models.AdminBanner, error)
+	GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, error)
 }
 
 type Tags interface {

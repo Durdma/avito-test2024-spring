@@ -161,7 +161,83 @@ func (r *BannersRepo) GetUserBanner(ctx context.Context, user models.User,
 
 func (r *BannersRepo) GetAllBanners(ctx context.Context, featureId int,
 	tagId int, limit int, offset int) ([]models.AdminBanner, error) {
-	return nil, nil
+	query := `SELECT id, COALESCE(fk_feature_id::bigint, 0), title, text, url, is_active, created_at, updated_at` +
+		` FROM banners`
+	args := pgx.NamedArgs{}
+
+	if featureId != 0 && tagId != 0 {
+		query += ` JOIN banners_tags ON banners.id = banners_tags.fk_banner_id` +
+			` JOIN tags ON banners_tags.fk_tag_id = tags.id` + ` WHERE tags.id = @tagId AND banners.fk_feature_id = @featureId`
+
+		args["tagId"] = tagId
+		args["featureId"] = featureId
+	}
+
+	if featureId != 0 && tagId == 0 {
+		query += ` WHERE banners.fk_feature_id = @featureId`
+
+		args["featureId"] = featureId
+	}
+
+	if featureId == 0 && tagId != 0 {
+		query += ` JOIN banners_tags ON banners.id = banners_tags.fk_banner_id` +
+			` JOIN tags ON banners_tags.fk_tag_id = tags.id` + ` WHERE tags.id = @tagId`
+
+		args["tagId"] = tagId
+	}
+
+	query += ` ORDER BY banners.id`
+
+	if offset != 0 {
+		query += ` OFFSET @offsetIn`
+		args["offsetIn"] = offset
+	}
+
+	if limit != 0 {
+		query += ` LIMIT @limitIn`
+		args["limitIn"] = limit
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := tx.Query(ctx, query, args)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			tx.Commit(ctx)
+			return nil, nil
+		}
+
+		tx.Rollback(ctx)
+		return nil, err
+	}
+	defer rows.Close()
+
+	banners := make([]models.AdminBanner, 0)
+	for rows.Next() {
+		banner := models.AdminBanner{}
+		err := rows.Scan(&banner.ID, &banner.Feature.ID, &banner.Content.Title, &banner.Content.Text,
+			&banner.Content.URL, &banner.IsActive, &banner.CreatedAt, &banner.UpdatedAt)
+		if err != nil {
+			tx.Rollback(ctx)
+			return nil, err
+		}
+
+		tags, err := r.getBannerTags(ctx, tx, banner.ID)
+		if err != nil {
+			tx.Rollback(ctx)
+			return nil, err
+		}
+
+		banner.Tags = tags
+
+		banners = append(banners, banner)
+	}
+
+	tx.Commit(ctx)
+	return banners, nil
 }
 
 func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bannerId int, tagsId []models.Tag) error {
@@ -183,4 +259,35 @@ func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bann
 	}
 
 	return nil
+}
+
+func (r *BannersRepo) getBannerTags(ctx context.Context, tx pgx.Tx, bannerId int) ([]models.Tag, error) {
+	query := `SELECT fk_tag_id FROM banners_tags WHERE fk_banner_id = @bannerId`
+	args := pgx.NamedArgs{
+		"bannerId": bannerId,
+	}
+
+	rows, err := r.db.Query(ctx, query, args)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+	defer rows.Close()
+
+	tags := make([]models.Tag, 0)
+	for rows.Next() {
+		fmt.Println("loop")
+		var tag models.Tag
+		err := rows.Scan(&tag.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags, err
 }

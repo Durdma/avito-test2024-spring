@@ -165,6 +165,22 @@ func (s *BannersService) GetUserBanner(ctx context.Context, input BannerGetByUse
 	return models.Banner{}, nil
 }
 
-func (s *BannersService) GetAllBanners(ctx context.Context) ([]models.AdminBanner, error) {
-	return nil, nil
+func (s *BannersService) GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, error) {
+	if limit < 0 {
+		return nil, errors.New("limit must be greater than 0")
+	}
+
+	if offset < 0 {
+		return nil, errors.New("offset must be greater or equal to 0")
+	}
+
+	if tagId < 0 {
+		return nil, errors.New("tag id must be greater or equal to 0")
+	}
+
+	if featureId < 0 {
+		return nil, errors.New("feature id must be greater or equal to 0")
+	}
+
+	return s.repo.GetAllBanners(ctx, featureId, tagId, limit, offset)
 }
