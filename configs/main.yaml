@@ -24,3 +24,11 @@ postgresql:
   maxOpenConnections: 20
   connectionMaxLifetime: 60s
   driverName: postgres
+
+redis:
+  host: localhost
+  port: 6379
+  db: 5
+  cacheTTL: 300s
+  retryInterval: 1ms
+  maxNumberOfRetries: 5

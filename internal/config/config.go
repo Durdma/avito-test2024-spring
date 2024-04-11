@@ -18,6 +18,7 @@ type Config struct {
 	HTTP       HTTPConfig
 	Logger     LoggerConfig
 	JWT        JWTConfig
+	Cache      RedisConfig
 }
 
 type LoggerConfig struct {
@@ -49,6 +50,15 @@ type PostgreSQLConfig struct {
 
 type JWTConfig struct {
 	SigningKey string
+}
+
+type RedisConfig struct {
+	Host               string
+	Port               string
+	DB                 int
+	CacheTTL           time.Duration
+	RetryInterval      time.Duration
+	MaxNumberOfRetries int
 }
 
 func Init(path string) (*Config, error) {
@@ -96,6 +106,10 @@ func unmarshal(cfg *Config) error {
 	}
 
 	if err := viper.UnmarshalKey("jwt", &cfg.JWT); err != nil {
+		return err
+	}
+
+	if err := viper.UnmarshalKey("redis", &cfg.Cache); err != nil {
 		return err
 	}
 
