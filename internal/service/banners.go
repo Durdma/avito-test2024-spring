@@ -4,6 +4,7 @@ import (
 	"avito-test2024-spring/internal/models"
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
+	"avito-test2024-spring/pkg/cache"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,12 +16,14 @@ import (
 type BannersService struct {
 	repo         repository.Banners
 	tokenManager auth.TokenManager
+	cache        cache.Cache
 }
 
-func NewBannersService(repo repository.Banners, tokenManager auth.TokenManager) *BannersService {
+func NewBannersService(repo repository.Banners, tokenManager auth.TokenManager, cache cache.Cache) *BannersService {
 	return &BannersService{
 		repo:         repo,
 		tokenManager: tokenManager,
+		cache:        cache,
 	}
 }
 
@@ -170,16 +173,39 @@ func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId
 
 	// TODO add cache
 	if lastRevision {
+		banner, err := s.repo.GetUserBanner(ctx, featureId, tagId)
+		if err != nil {
+			return models.Banner{}, err
+		}
+
+		err = s.cache.Set(banner, tagId, featureId)
+		if err != nil {
+			return banner, err
+		}
+
+		return banner, nil
+	} else {
+		banner, err := s.cache.Get(tagId, featureId)
+		if err != nil {
+			if err.Error() == "not found" {
+				banner, err := s.repo.GetUserBanner(ctx, featureId, tagId)
+				if err != nil {
+					return models.Banner{}, err
+				}
+
+				err = s.cache.Set(banner, tagId, featureId)
+				if err != nil {
+					return banner, err
+				}
+
+				return banner, nil
+			} else {
+				return models.Banner{}, err
+			}
+		}
+
+		return banner, err
 	}
-
-	banner, err := s.repo.GetUserBanner(ctx, featureId, tagId)
-	if err != nil {
-		return models.Banner{}, err
-	}
-
-	// TODO add cache fill
-
-	return banner, nil
 }
 
 func (s *BannersService) GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, error) {

@@ -4,6 +4,7 @@ import (
 	"avito-test2024-spring/internal/models"
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
+	"avito-test2024-spring/pkg/cache"
 	"context"
 )
 
@@ -42,9 +43,9 @@ type Services struct {
 	Users    Users
 }
 
-func NewServices(repos *repository.Repositories, tokenManager auth.TokenManager) *Services {
+func NewServices(repos *repository.Repositories, tokenManager auth.TokenManager, cache cache.Cache) *Services {
 	return &Services{
-		Banners:  NewBannersService(repos.Banners, tokenManager),
+		Banners:  NewBannersService(repos.Banners, tokenManager, cache),
 		Tags:     NewTagsService(repos.Tags),
 		Features: NewFeaturesService(repos.Features),
 		Users:    NewUsersService(repos.Users, tokenManager),

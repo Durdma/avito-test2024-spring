@@ -32,7 +32,6 @@ func Run(configPath string) {
 
 	cache := cache2.NewRedisCache(cfg.Cache)
 	logs.Info().Msg("Initialized connection pool Cache")
-	_ = cache
 
 	dbPool := postgresql.NewConnectionPool(cfg.PostgreSQL, logs)
 	logs.Info().Msg("Initialized connection pool DB")
@@ -46,10 +45,10 @@ func Run(configPath string) {
 	}
 	logs.Info().Msg("Initialized tokenManager")
 
-	services := service.NewServices(repos, tokenManager)
+	services := service.NewServices(repos, tokenManager, cache)
 	logs.Info().Msg("Initialized services")
 
-	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, services.Users, logs, tokenManager)
+	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, services.Users, logs, tokenManager, cache)
 	logs.Info().Msg("Initialized handlers")
 
 	srv := server.NewServer(cfg.HTTP, handlers.Init("local", cfg.HTTP.Port))

@@ -4,6 +4,7 @@ import (
 	"avito-test2024-spring/internal/controller/httpv1"
 	"avito-test2024-spring/internal/service"
 	"avito-test2024-spring/pkg/auth"
+	"avito-test2024-spring/pkg/cache"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"net/http"
@@ -16,10 +17,12 @@ type Handler struct {
 	usersService    service.Users
 	logger          zerolog.Logger
 	tokenManager    auth.TokenManager
+	cache           cache.Cache
 }
 
 func NewHandler(bannersService service.Banners, tagsService service.Tags,
-	featuresService service.Features, usersService service.Users, logger zerolog.Logger, tokenManager auth.TokenManager) *Handler {
+	featuresService service.Features, usersService service.Users, logger zerolog.Logger, tokenManager auth.TokenManager,
+	cache cache.Cache) *Handler {
 	return &Handler{
 		bannersService:  bannersService,
 		tagsService:     tagsService,
@@ -27,6 +30,7 @@ func NewHandler(bannersService service.Banners, tagsService service.Tags,
 		usersService:    usersService,
 		logger:          logger,
 		tokenManager:    tokenManager,
+		cache:           cache,
 	}
 }
 
@@ -47,7 +51,7 @@ func (h *Handler) Init(host string, port string) *gin.Engine {
 }
 
 func (h *Handler) initAPI(router *gin.Engine) {
-	handlerV1 := httpv1.NewHandler(h.bannersService, h.tagsService, h.featuresService, h.usersService, h.logger, h.tokenManager)
+	handlerV1 := httpv1.NewHandler(h.bannersService, h.tagsService, h.featuresService, h.usersService, h.logger, h.tokenManager, h.cache)
 	api := router.Group("/api")
 	{
 		handlerV1.Init(api)
