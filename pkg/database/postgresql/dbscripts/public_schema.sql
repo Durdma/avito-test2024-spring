@@ -18,9 +18,7 @@ create table features (
 create table banners (
     id bigserial not null,
     fk_feature_id int,
-    title varchar(255) not null,
-    text varchar(1000) not null,
-    url varchar not null,
+    content jsonb not null,
     is_active bool not null default true,
     created_at timestamp not null,
     updated_at timestamp not null,
@@ -38,11 +36,15 @@ create table tags (
 create table banners_tags (
     fk_banner_id int not null,
     fk_tag_id int not null,
+    fk_feature_id int not null,
     primary key (fk_banner_id, fk_tag_id),
     foreign key (fk_banner_id) references banners(id)
         on delete cascade on update restrict,
     foreign key (fk_tag_id) references tags(id)
-        on delete cascade on update restrict
+        on delete cascade on update restrict,
+    foreign key (fk_feature_id) references features(id)
+        on delete cascade on update restrict,
+    constraint unique_banner_tag_feature unique (fk_feature_id, fk_tag_id)
 );
 
 create table users (

@@ -39,7 +39,7 @@ type bannersAddInput struct {
 	IsActive bool              `json:"is_active" binding:"required"`
 }
 
-// TODO refactor response json like in api docs
+//TODO refactor response json like in api docs
 
 func (h *Handler) bannersAdd(ctx *gin.Context) {
 	var banner bannersAddInput
@@ -203,4 +203,6 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, banners)
 }
 
-func (h *Handler) getUserBanner(ctx *gin.Context) {}
+func (h *Handler) getUserBanner(ctx *gin.Context) {
+
+}

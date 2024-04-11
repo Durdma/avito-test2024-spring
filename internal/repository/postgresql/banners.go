@@ -4,6 +4,7 @@ import (
 	"avito-test2024-spring/internal/models"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
@@ -23,9 +24,10 @@ func NewBannersRepo(db *pgxpool.Pool) *BannersRepo {
 func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) error {
 	var id int
 
-	query := `INSERT INTO banners (fk_feature_id, title, text, url, is_active, created_at, updated_at) VALUES (
-    @featureId, @titleIn, @textIn, @urlIn, @isActive, @createdAt, @updatedAt) RETURNING id`
+	query := `INSERT INTO banners (fk_feature_id, content, is_active, created_at, updated_at) VALUES (
+    @featureId, @contentIn, @isActive, @createdAt, @updatedAt) RETURNING id`
 	args := pgx.NamedArgs{
+		"contentIn": fmt.Sprintf(`{"title": "%v", "text": "%v", "url": "%v"}`, banner.Content.Title, banner.Content.Text, banner.Content.URL),
 		"titleIn":   banner.Content.Title,
 		"textIn":    banner.Content.Text,
 		"urlIn":     banner.Content.URL,
@@ -51,7 +53,7 @@ func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) err
 		return err
 	}
 
-	err = r.insertIntoBannersTags(ctx, tx, id, banner.Tags)
+	err = r.insertIntoBannersTags(ctx, tx, id, banner.Tags, banner.Feature.ID)
 	if err != nil {
 		tx.Rollback(ctx)
 		return err
@@ -62,13 +64,11 @@ func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) err
 }
 
 func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner) error {
-	query := `UPDATE banners SET fk_feature_id = @featureId, title = @titleIn, text = @textIn,
-    	url = @urlIn, is_active = @isActive, created_at = @createdAt, updated_at = @updatedAt WHERE id = @bannerId`
+	query := `UPDATE banners SET fk_feature_id = @featureId, content = @contentIn,
+    is_active = @isActive, created_at = @createdAt, updated_at = @updatedAt WHERE id = @bannerId`
 	args := pgx.NamedArgs{
 		"bannerId":  banner.ID,
-		"titleIn":   banner.Content.Title,
-		"textIn":    banner.Content.Text,
-		"urlIn":     banner.Content.URL,
+		"contentIn": fmt.Sprintf(`{"title": "%v", "text": "%v", "url": "%v"}`, banner.Content.Title, banner.Content.Text, banner.Content.URL),
 		"isActive":  banner.IsActive,
 		"createdAt": banner.CreatedAt,
 		"updatedAt": banner.UpdatedAt,
@@ -128,8 +128,9 @@ func (r *BannersRepo) Delete(ctx context.Context, bannerId int) error {
 
 func (r *BannersRepo) GetBannerByID(ctx context.Context, bannerId int) (models.AdminBanner, error) {
 	var banner models.AdminBanner
+	var contentJSON []byte
 
-	query := `SELECT id, COALESCE(fk_feature_id::bigint, 0), title, text, url, is_active, created_at, updated_at FROM banners WHERE id=@bannerId`
+	query := `SELECT id, COALESCE(fk_feature_id::bigint, 0), content, is_active, created_at, updated_at FROM banners WHERE id=@bannerId`
 	args := pgx.NamedArgs{
 		"bannerId": bannerId,
 	}
@@ -139,13 +140,17 @@ func (r *BannersRepo) GetBannerByID(ctx context.Context, bannerId int) (models.A
 		return models.AdminBanner{}, err
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&banner.ID, &banner.Feature.ID, &banner.Content.Title, &banner.Content.Text,
-		&banner.Content.URL, &banner.IsActive, &banner.CreatedAt, &banner.UpdatedAt)
+	err = tx.QueryRow(ctx, query, args).Scan(&banner.ID, &banner.Feature.ID, &contentJSON, &banner.IsActive, &banner.CreatedAt, &banner.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			tx.Rollback(ctx)
 			return models.AdminBanner{}, errors.New(fmt.Sprintf("banner with id=%v not found", bannerId))
 		}
+		tx.Rollback(ctx)
+		return models.AdminBanner{}, err
+	}
+
+	if err := json.Unmarshal(contentJSON, &banner.Content); err != nil {
 		tx.Rollback(ctx)
 		return models.AdminBanner{}, err
 	}
@@ -161,7 +166,7 @@ func (r *BannersRepo) GetUserBanner(ctx context.Context, user models.User,
 
 func (r *BannersRepo) GetAllBanners(ctx context.Context, featureId int,
 	tagId int, limit int, offset int) ([]models.AdminBanner, error) {
-	query := `SELECT id, COALESCE(fk_feature_id::bigint, 0), title, text, url, is_active, created_at, updated_at` +
+	query := `SELECT banners.id, COALESCE(banners.fk_feature_id::bigint, 0), content, is_active, created_at, updated_at` +
 		` FROM banners`
 	args := pgx.NamedArgs{}
 
@@ -218,9 +223,14 @@ func (r *BannersRepo) GetAllBanners(ctx context.Context, featureId int,
 	banners := make([]models.AdminBanner, 0)
 	for rows.Next() {
 		banner := models.AdminBanner{}
-		err := rows.Scan(&banner.ID, &banner.Feature.ID, &banner.Content.Title, &banner.Content.Text,
-			&banner.Content.URL, &banner.IsActive, &banner.CreatedAt, &banner.UpdatedAt)
+		var contentJSON []byte
+		err := rows.Scan(&banner.ID, &banner.Feature.ID, &contentJSON, &banner.IsActive, &banner.CreatedAt, &banner.UpdatedAt)
 		if err != nil {
+			tx.Rollback(ctx)
+			return nil, err
+		}
+
+		if err := json.Unmarshal(contentJSON, &banner.Content); err != nil {
 			tx.Rollback(ctx)
 			return nil, err
 		}
@@ -240,10 +250,11 @@ func (r *BannersRepo) GetAllBanners(ctx context.Context, featureId int,
 	return banners, nil
 }
 
-func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bannerId int, tagsId []models.Tag) error {
-	query := `INSERT INTO banners_tags (fk_banner_id, fk_tag_id) VALUES (@banner, @tag)`
+func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bannerId int, tagsId []models.Tag, featureId int) error {
+	query := `INSERT INTO banners_tags (fk_banner_id, fk_tag_id, fk_feature_id) VALUES (@banner, @tag, @feature)`
 	args := pgx.NamedArgs{
-		"banner": bannerId,
+		"banner":  bannerId,
+		"feature": featureId,
 	}
 	if len(tagsId) > 0 {
 		for _, t := range tagsId {
