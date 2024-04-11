@@ -7,6 +7,7 @@ import (
 	"avito-test2024-spring/internal/server"
 	"avito-test2024-spring/internal/service"
 	"avito-test2024-spring/pkg/auth"
+	cache2 "avito-test2024-spring/pkg/cache"
 	"avito-test2024-spring/pkg/database/postgresql"
 	"avito-test2024-spring/pkg/logger"
 	"log"
@@ -28,6 +29,10 @@ func Run(configPath string) {
 
 	logs.Info().Msg("Starting app")
 	logs.Info().Interface("config", cfg).Msg("")
+
+	cache := cache2.NewRedisCache(cfg.Cache)
+	logs.Info().Msg("Initialized connection pool Cache")
+	_ = cache
 
 	dbPool := postgresql.NewConnectionPool(cfg.PostgreSQL, logs)
 	logs.Info().Msg("Initialized connection pool DB")
