@@ -204,5 +204,76 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 }
 
 func (h *Handler) getUserBanner(ctx *gin.Context) {
+	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
+	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid tag_id format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
 
+	if ctx.Query("tag_id") == "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("empty tag_id field")
+		newErrorResponse(ctx, http.StatusBadRequest, "empty tag_id field")
+		return
+	}
+
+	featureId, err := strconv.Atoi(ctx.Query("feature_id"))
+	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("feature_id") != "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("invalid feature_id format")
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if ctx.Query("feature_id") == "" {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusBadRequest).
+			Msg("empty feature_id")
+		newErrorResponse(ctx, http.StatusBadRequest, "empty tag_id field")
+		return
+	}
+
+	lastRevision := false
+	lastRevisionQuery := ctx.Query("use_last_revision")
+	if lastRevisionQuery != "" {
+		if lastRevisionQuery == "true" {
+			lastRevision = true
+		} else {
+			if lastRevisionQuery != "false" {
+				h.logger.Error().Err(err).
+					Str("method", ctx.Request.Method).
+					Str("url", ctx.Request.RequestURI).
+					Int("status_code", http.StatusBadRequest).
+					Msg("invalid last_revision format")
+				newErrorResponse(ctx, http.StatusBadRequest, "invalid last_revision format")
+				return
+			}
+		}
+	}
+
+	banner, err := h.bannersService.GetUserBanner(ctx, featureId, tagId, lastRevision)
+	if err != nil {
+		h.logger.Error().Err(err).
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusInternalServerError).
+			Msg("")
+		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, banner)
 }

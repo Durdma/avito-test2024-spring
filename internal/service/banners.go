@@ -158,11 +158,28 @@ func (s *BannersService) DeleteBanner(ctx context.Context, bannerId int) error {
 	return s.repo.Delete(ctx, bannerId)
 }
 
-type BannerGetByUserInput struct {
-}
+// TODO refactor response json banner like api scheme
+func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, error) {
+	if tagId < 0 {
+		return models.Banner{}, errors.New("tag id must be greater or equal to 0")
+	}
 
-func (s *BannersService) GetUserBanner(ctx context.Context, input BannerGetByUserInput) (models.Banner, error) {
-	return models.Banner{}, nil
+	if featureId < 0 {
+		return models.Banner{}, errors.New("feature id must be greater or equal to 0")
+	}
+
+	// TODO add cache
+	if lastRevision {
+	}
+
+	banner, err := s.repo.GetUserBanner(ctx, featureId, tagId)
+	if err != nil {
+		return models.Banner{}, err
+	}
+
+	// TODO add cache fill
+
+	return banner, nil
 }
 
 func (s *BannersService) GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, error) {

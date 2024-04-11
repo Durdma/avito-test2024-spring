@@ -13,7 +13,7 @@ type Banners interface {
 	Update(ctx context.Context, banner models.AdminBanner) error
 	Delete(ctx context.Context, bannerId int) error
 	GetBannerByID(ctx context.Context, bannerId int) (models.AdminBanner, error)
-	GetUserBanner(ctx context.Context, user models.User, tagId int, featureId int, lastRevision bool) (models.Banner, error)
+	GetUserBanner(ctx context.Context, tagId int, featureId int) (models.Banner, error)
 	GetAllBanners(ctx context.Context, featureId int, tagId int, limit int, offset int) ([]models.AdminBanner, error)
 }
 
