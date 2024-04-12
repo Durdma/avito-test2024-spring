@@ -45,7 +45,7 @@ type Services struct {
 
 func NewServices(repos *repository.Repositories, tokenManager auth.TokenManager, cache cache.Cache) *Services {
 	return &Services{
-		Banners:  NewBannersService(repos.Banners, tokenManager, cache),
+		Banners:  NewBannersService(repos.Banners, cache),
 		Tags:     NewTagsService(repos.Tags),
 		Features: NewFeaturesService(repos.Features),
 		Users:    NewUsersService(repos.Users, tokenManager),

@@ -3,7 +3,6 @@ package service
 import (
 	"avito-test2024-spring/internal/models"
 	"avito-test2024-spring/internal/repository"
-	"avito-test2024-spring/pkg/auth"
 	"avito-test2024-spring/pkg/cache"
 	"context"
 	"encoding/json"
@@ -14,16 +13,14 @@ import (
 )
 
 type BannersService struct {
-	repo         repository.Banners
-	tokenManager auth.TokenManager
-	cache        cache.Cache
+	repo  repository.Banners
+	cache cache.Cache
 }
 
-func NewBannersService(repo repository.Banners, tokenManager auth.TokenManager, cache cache.Cache) *BannersService {
+func NewBannersService(repo repository.Banners, cache cache.Cache) *BannersService {
 	return &BannersService{
-		repo:         repo,
-		tokenManager: tokenManager,
-		cache:        cache,
+		repo:  repo,
+		cache: cache,
 	}
 }
 
