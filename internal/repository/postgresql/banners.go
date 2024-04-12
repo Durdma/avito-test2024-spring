@@ -63,7 +63,8 @@ func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) err
 	return nil
 }
 
-func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner) error {
+// TODO add update banners_tags
+func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner, toDel []int) error {
 	query := `UPDATE banners SET fk_feature_id = @featureId, content = @contentIn,
     is_active = @isActive, created_at = @createdAt, updated_at = @updatedAt WHERE id = @bannerId`
 	args := pgx.NamedArgs{
@@ -94,6 +95,18 @@ func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner) err
 	if res.RowsAffected() == 0 {
 		tx.Rollback(ctx)
 		return errors.New(fmt.Sprintf("banner with id=%v not found", banner.ID))
+	}
+
+	err = r.insertIntoBannersTags(ctx, tx, banner.ID, banner.Tags, banner.Feature.ID)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	err = r.deleteBannerTag(ctx, tx, banner.ID, toDel)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
 	}
 
 	tx.Commit(ctx)
@@ -147,6 +160,11 @@ func (r *BannersRepo) GetBannerByID(ctx context.Context, bannerId int) (models.A
 			return models.AdminBanner{}, errors.New(fmt.Sprintf("banner with id=%v not found", bannerId))
 		}
 		tx.Rollback(ctx)
+		return models.AdminBanner{}, err
+	}
+
+	banner.Tags, err = r.getBannerTags(ctx, tx, bannerId)
+	if err != nil {
 		return models.AdminBanner{}, err
 	}
 
@@ -284,16 +302,20 @@ func (r *BannersRepo) GetAllBanners(ctx context.Context, featureId int,
 }
 
 func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bannerId int, tagsId []models.Tag, featureId int) error {
-	query := `INSERT INTO banners_tags (fk_banner_id, fk_tag_id, fk_feature_id) VALUES (@banner, @tag, @feature)`
-	args := pgx.NamedArgs{
-		"banner":  bannerId,
-		"feature": featureId,
-	}
 	if len(tagsId) > 0 {
 		for _, t := range tagsId {
-			args["tag"] = t.ID
+			query := fmt.Sprintf(`DO $$
+										BEGIN
+    										IF NOT EXISTS (
+        										SELECT 1 FROM banners_tags
+        											WHERE fk_banner_id = %v AND fk_tag_id = %v AND fk_feature_id = %v
+    										) THEN
+        										INSERT INTO banners_tags (fk_banner_id, fk_tag_id, fk_feature_id)
+        											VALUES (%v, %v, %v);
+    										END IF;
+										END $$;`, bannerId, t.ID, featureId, bannerId, t.ID, featureId)
 
-			_, err := tx.Exec(ctx, query, args)
+			_, err := tx.Exec(ctx, query)
 			if err != nil {
 				return err
 			}
@@ -323,7 +345,6 @@ func (r *BannersRepo) getBannerTags(ctx context.Context, tx pgx.Tx, bannerId int
 
 	tags := make([]models.Tag, 0)
 	for rows.Next() {
-		fmt.Println("loop")
 		var tag models.Tag
 		err := rows.Scan(&tag.ID)
 		if err != nil {
@@ -334,4 +355,33 @@ func (r *BannersRepo) getBannerTags(ctx context.Context, tx pgx.Tx, bannerId int
 	}
 
 	return tags, err
+}
+
+func (r *BannersRepo) deleteBannerTag(ctx context.Context, tx pgx.Tx, bannerId int, toDel []int) error {
+	if len(toDel) == 0 {
+		return nil
+	}
+
+	query := `DELETE FROM banners_tags WHERE fk_banner_id = @bannerId AND fk_tag_id = @tagId`
+	args := pgx.NamedArgs{
+		"bannerId": bannerId,
+	}
+
+	for _, t := range toDel {
+		args["tagId"] = t
+
+		res, err := tx.Exec(ctx, query, args)
+		if err != nil {
+			tx.Rollback(ctx)
+			return err
+		}
+
+		if res.RowsAffected() == 0 {
+			tx.Rollback(ctx)
+			return errors.New(fmt.Sprintf("banner_tag with banner_id=%v and tag_id=%v not found", bannerId, t))
+		}
+	}
+
+	tx.Commit(ctx)
+	return nil
 }

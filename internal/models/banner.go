@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"time"
 )
 
@@ -66,6 +67,10 @@ func (b *Banner) ValidateBanner() error {
 }
 
 func (b *AdminBanner) ValidateAndSetTags(tags []int) error {
+	if len(slices.Compact(tags)) != len(tags) {
+		return errors.New("list of tags_ids contain similar ids")
+	}
+
 	for _, t := range tags {
 		if t < 0 {
 			return errors.New(fmt.Sprintf("tag id must be greater or equal to 0, but have %v", t))
@@ -75,6 +80,39 @@ func (b *AdminBanner) ValidateAndSetTags(tags []int) error {
 	}
 
 	return nil
+}
+
+func (b *AdminBanner) ValidateAndUpdateTags(newTags []int) ([]int, error) {
+	if len(newTags) == 0 {
+		return nil, nil
+	}
+
+	if len(slices.Compact(newTags)) != len(newTags) {
+		return nil, errors.New("list of tags_ids contain similar ids")
+	}
+
+	tagsInt := make([]int, 0, len(b.Tags))
+	for _, t := range b.Tags {
+		tagsInt = append(tagsInt, t.ID)
+	}
+
+	toDel := make([]int, 0)
+
+	for _, t := range newTags {
+		if slices.Contains(tagsInt, t) {
+			b.Tags = slices.Delete(b.Tags, slices.Index(tagsInt, t), slices.Index(tagsInt, t)+1)
+			tagsInt = slices.Delete(tagsInt, slices.Index(tagsInt, t), slices.Index(tagsInt, t)+1)
+			toDel = append(toDel, t)
+			continue
+		}
+
+		b.Tags = append(b.Tags, Tag{ID: t})
+	}
+
+	fmt.Println("tags: ", b.Tags)
+	fmt.Println(toDel)
+
+	return toDel, nil
 }
 
 func (b *AdminBanner) ValidateAndSetFeature(feature int) error {

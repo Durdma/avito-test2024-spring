@@ -82,6 +82,7 @@ type bannersUpdateInput struct {
 	IsActive bool                 `json:"is_active,omitempty"`
 }
 
+// TODO update adding tags
 func (i *bannersUpdateInput) setTags(tags []models.Tag) {
 	for _, t := range tags {
 		i.Tags = append(i.Tags, t.ID)
@@ -109,8 +110,6 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 		IsActive: bannerOld.IsActive,
 	}
 
-	bannerInput.setTags(bannerOld.Tags)
-
 	if err := json.NewDecoder(ctx.Value("request_body").(io.Reader)).Decode(&bannerInput); err != nil {
 		return err
 	}
@@ -135,7 +134,9 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 		return err
 	}
 
-	err = banner.ValidateAndSetTags(bannerInput.Tags)
+	banner.Tags = bannerOld.Tags
+
+	toDel, err := banner.ValidateAndUpdateTags(bannerInput.Tags)
 	if err != nil {
 		return err
 	}
@@ -145,7 +146,7 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 	banner.ID = bannerId
 	banner.IsActive = bannerInput.IsActive
 
-	err = s.repo.Update(ctx, banner)
+	err = s.repo.Update(ctx, banner, toDel)
 	if err != nil {
 		return err
 	}
