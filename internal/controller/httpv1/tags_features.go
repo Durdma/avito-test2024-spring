@@ -9,14 +9,14 @@ import (
 )
 
 func (h *Handler) initTagsFeaturesRoutes(api *gin.RouterGroup) {
-	tags := api.Group("/tags")
+	tags := api.Group("/tags", h.userIdentity)
 	{
 		tags.POST("/", h.addTag)
 		tags.DELETE("/:id", h.deleteTag)
 		tags.GET("/", h.getAllTags)
 	}
 
-	features := api.Group("/features")
+	features := api.Group("/features", h.userIdentity)
 	{
 		features.POST("/", h.addFeature)
 		features.DELETE("/:id", h.deleteFeature)
@@ -25,6 +25,17 @@ func (h *Handler) initTagsFeaturesRoutes(api *gin.RouterGroup) {
 }
 
 func (h *Handler) addTag(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	err := h.tagsService.AddTag(ctx)
 	if err != nil {
 		h.logger.Error().Err(err).
@@ -39,6 +50,17 @@ func (h *Handler) addTag(ctx *gin.Context) {
 }
 
 func (h *Handler) deleteTag(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	tagId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		h.logger.Error().Err(err).
@@ -75,6 +97,17 @@ func (h *Handler) deleteTag(ctx *gin.Context) {
 }
 
 func (h *Handler) getAllTags(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	limit, err := strconv.Atoi(ctx.Query("limit"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
 		h.logger.Error().Err(err).
@@ -120,6 +153,17 @@ func (h *Handler) getAllTags(ctx *gin.Context) {
 }
 
 func (h *Handler) addFeature(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	err := h.featuresService.AddFeature(ctx)
 	if err != nil {
 		h.logger.Error().Err(err).
@@ -134,6 +178,17 @@ func (h *Handler) addFeature(ctx *gin.Context) {
 }
 
 func (h *Handler) deleteFeature(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	featureId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		h.logger.Error().Err(err).
@@ -170,6 +225,17 @@ func (h *Handler) deleteFeature(ctx *gin.Context) {
 }
 
 func (h *Handler) getAllFeatures(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	limit, err := strconv.Atoi(ctx.Query("limit"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
 		h.logger.Error().Err(err).

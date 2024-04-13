@@ -12,17 +12,13 @@ import (
 )
 
 func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
-	banners := api.Group("/") // add auth middleware for admin
+	banners := api.Group("/", h.userIdentity) // add auth middleware for admin
 	{
 		banners.POST("/", h.bannersAdd)
 		banners.PATCH("/:id", h.bannersUpdate)
 		banners.DELETE("/:id", h.bannersDelete)
 		banners.GET("/", h.bannersGetAll)
-	}
-
-	userBanner := api.Group("/user_banner") // add auth middleware for user
-	{
-		userBanner.GET("/", h.getUserBanner)
+		banners.GET("/user_banner", h.getUserBanner)
 	}
 }
 
@@ -42,6 +38,17 @@ type bannersAddInput struct {
 //TODO refactor response json like in api docs
 
 func (h *Handler) bannersAdd(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	var banner bannersAddInput
 	if err := json.NewDecoder(ctx.Request.Body).Decode(&banner); err != nil {
 		h.logger.Error().Err(err).
@@ -75,6 +82,17 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 }
 
 func (h *Handler) bannersUpdate(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	serviceCtx := context.WithValue(ctx, "request_body", ctx.Request.Body)
 	serviceCtx = context.WithValue(serviceCtx, "banner_id", ctx.Param("id"))
 
@@ -93,6 +111,17 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 }
 
 func (h *Handler) bannersDelete(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	bannerId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		h.logger.Error().Err(err).
@@ -129,6 +158,17 @@ func (h *Handler) bannersDelete(ctx *gin.Context) {
 }
 
 func (h *Handler) bannersGetAll(ctx *gin.Context) {
+	isAdmin := ctx.Value(userCtx).(bool)
+	if !isAdmin {
+		h.logger.Error().
+			Str("method", ctx.Request.Method).
+			Str("url", ctx.Request.RequestURI).
+			Int("status_code", http.StatusUnauthorized).
+			Msg("not admin")
+		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		return
+	}
+
 	limit, err := strconv.Atoi(ctx.Query("limit"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
 		h.logger.Error().Err(err).
