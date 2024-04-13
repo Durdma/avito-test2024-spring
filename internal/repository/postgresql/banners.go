@@ -177,11 +177,12 @@ func (r *BannersRepo) GetBannerByID(ctx context.Context, bannerId int) (models.A
 	return banner, nil
 }
 
-func (r *BannersRepo) GetUserBanner(ctx context.Context, featureId int, tagId int) (models.Banner, error) {
+func (r *BannersRepo) GetUserBanner(ctx context.Context, featureId int, tagId int) (models.Banner, int, error) {
 	var contentJSON []byte
 	var banner models.Banner
+	var bannerId int
 
-	query := `SELECT content FROM banners
+	query := `SELECT content, banners_tags.fk_banner_id FROM banners
 	JOIN banners_tags ON banners.id = banners_tags.fk_banner_id
 	WHERE banners.fk_feature_id = @featureId AND banners_tags.fk_tag_id = @tagId
 	AND banners.is_active = true`
@@ -192,27 +193,27 @@ func (r *BannersRepo) GetUserBanner(ctx context.Context, featureId int, tagId in
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return models.Banner{}, err
+		return models.Banner{}, -1, err
 	}
 
-	err = tx.QueryRow(ctx, query, args).Scan(&contentJSON)
+	err = tx.QueryRow(ctx, query, args).Scan(&contentJSON, &bannerId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			tx.Rollback(ctx)
-			return models.Banner{}, errors.New(fmt.Sprintf("banner with tag_id=%v and feature_id=%v not found", tagId, featureId))
+			return models.Banner{}, -1, errors.New(fmt.Sprintf("banner with tag_id=%v and feature_id=%v not found", tagId, featureId))
 		}
 
 		tx.Rollback(ctx)
-		return models.Banner{}, err
+		return models.Banner{}, -1, err
 	}
 
 	if err := json.Unmarshal(contentJSON, &banner); err != nil {
 		tx.Rollback(ctx)
-		return models.Banner{}, err
+		return models.Banner{}, -1, err
 	}
 
 	tx.Commit(ctx)
-	return banner, nil
+	return banner, bannerId, nil
 }
 
 func (r *BannersRepo) GetAllBanners(ctx context.Context, featureId int,

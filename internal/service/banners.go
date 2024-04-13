@@ -60,6 +60,8 @@ func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) er
 		return err
 	}
 
+	banner.IsActive = input.IsActive
+
 	banner.CreatedAt = time.Now()
 	banner.UpdatedAt = time.Now()
 
@@ -148,6 +150,13 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 		return err
 	}
 
+	if (bannerOld.IsActive != banner.IsActive) && (banner.IsActive == false) {
+		err = s.cache.Delete(banner.ID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -156,7 +165,17 @@ func (s *BannersService) DeleteBanner(ctx context.Context, bannerId int) error {
 		return errors.New("banner id must be greater than 0")
 	}
 
-	return s.repo.Delete(ctx, bannerId)
+	err := s.repo.Delete(ctx, bannerId)
+	if err != nil {
+		return err
+	}
+
+	err = s.cache.Delete(bannerId)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 // TODO refactor response json banner like api scheme
@@ -171,12 +190,12 @@ func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId
 
 	// TODO add cache
 	if lastRevision {
-		banner, err := s.repo.GetUserBanner(ctx, featureId, tagId)
+		banner, bannerId, err := s.repo.GetUserBanner(ctx, featureId, tagId)
 		if err != nil {
 			return models.Banner{}, err
 		}
 
-		err = s.cache.Set(banner, tagId, featureId)
+		err = s.cache.Set(banner, tagId, featureId, bannerId)
 		if err != nil {
 			return banner, err
 		}
@@ -186,12 +205,12 @@ func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId
 		banner, err := s.cache.Get(tagId, featureId)
 		if err != nil {
 			if err.Error() == "not found" {
-				banner, err := s.repo.GetUserBanner(ctx, featureId, tagId)
+				banner, bannerId, err := s.repo.GetUserBanner(ctx, featureId, tagId)
 				if err != nil {
 					return models.Banner{}, err
 				}
 
-				err = s.cache.Set(banner, tagId, featureId)
+				err = s.cache.Set(banner, tagId, featureId, bannerId)
 				if err != nil {
 					return banner, err
 				}

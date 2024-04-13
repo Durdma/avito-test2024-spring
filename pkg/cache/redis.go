@@ -42,7 +42,7 @@ func NewRedisCache(cfg config.RedisConfig) *RedisCache {
 
 // https://pkg.go.dev/github.com/gomodule/redigo/redis#example-Args
 
-func (c *RedisCache) Set(banner models.Banner, tagId int, featureId int) error {
+func (c *RedisCache) Set(banner models.Banner, tagId int, featureId int, bannerId int) error {
 	key := fmt.Sprintf("tag_id:%v:feature_id:%v", tagId, featureId)
 
 	conn := c.ConnPool.Get()
@@ -53,7 +53,7 @@ func (c *RedisCache) Set(banner models.Banner, tagId int, featureId int) error {
 		return err
 	}
 
-	_, err = conn.Do("SET", key, jsonBanner)
+	_, err = conn.Do("HSET", key, "banner_id", bannerId, "content", jsonBanner)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (c *RedisCache) Get(tagId int, featureId int) (models.Banner, error) {
 	conn := c.ConnPool.Get()
 	defer conn.Close()
 
-	val, err := conn.Do("GET", key)
+	val, err := conn.Do("HGET", key, "content")
 	if err != nil {
 		return models.Banner{}, err
 	}
@@ -88,4 +88,49 @@ func (c *RedisCache) Get(tagId int, featureId int) (models.Banner, error) {
 	}
 
 	return banner, nil
+}
+
+func (c *RedisCache) Delete(bannerId int) error {
+	conn := c.ConnPool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("SELECT", 5)
+	if err != nil {
+		return err
+	}
+
+	iter := 0
+	keys := make([]string, 0)
+	for {
+		arr, err := redis.Values(conn.Do("SCAN", 5))
+		if err != nil {
+			return err
+		}
+
+		iter, _ = redis.Int(arr[0], nil)
+		keyBytes, _ := redis.ByteSlices(arr[1], err)
+		for _, b := range keyBytes {
+			keys = append(keys, string(b))
+		}
+
+		if iter == 0 {
+			break
+		}
+	}
+
+	for _, k := range keys {
+		value, err := redis.Int(conn.Do("HGET", k, "banner_id"))
+		if err != nil {
+			return err
+		}
+
+		if value == bannerId {
+			_, err = conn.Do("DEL", k)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
