@@ -2,11 +2,11 @@ package controller
 
 import (
 	"avito-test2024-spring/internal/controller/httpv1"
+	"avito-test2024-spring/internal/controller/metrics"
 	"avito-test2024-spring/internal/service"
 	"avito-test2024-spring/pkg/auth"
 	"avito-test2024-spring/pkg/cache"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"net/http"
 )
@@ -35,14 +35,6 @@ func NewHandler(bannersService service.Banners, tagsService service.Tags,
 	}
 }
 
-func prometheusHandler() gin.HandlerFunc {
-	h := promhttp.Handler()
-
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
-	}
-}
-
 func (h *Handler) Init(host string, port string) *gin.Engine {
 	router := gin.Default()
 	router.Use(
@@ -54,7 +46,9 @@ func (h *Handler) Init(host string, port string) *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 
-	router.GET("/metrics", prometheusHandler())
+	metrics.Init()
+
+	router.GET("/metrics", metrics.PrometheusHandler())
 
 	h.initAPI(router)
 

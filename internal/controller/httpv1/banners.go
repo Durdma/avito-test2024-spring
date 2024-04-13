@@ -1,6 +1,7 @@
 package httpv1
 
 import (
+	"avito-test2024-spring/internal/controller/metrics"
 	"avito-test2024-spring/internal/service"
 	"context"
 	"encoding/json"
@@ -12,14 +13,16 @@ import (
 )
 
 func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
-	banners := api.Group("/", h.userIdentity) // add auth middleware for admin
+	banners := api.Group("", h.userIdentity) // add auth middleware for admin
+	banners.Use(metrics.PrometheusMiddleware())
 	{
-		banners.POST("/", h.bannersAdd)
+		banners.POST("", h.bannersAdd)
 		banners.PATCH("/:id", h.bannersUpdate)
 		banners.DELETE("/:id", h.bannersDelete)
-		banners.GET("/", h.bannersGetAll)
+		banners.GET("", h.bannersGetAll)
 		banners.GET("/user_banner", h.getUserBanner)
 	}
+
 }
 
 type bannersAddContent struct {
@@ -243,7 +246,24 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, banners)
 }
 
+//var (
+//	RequestDuration = prometheus.NewHistogramVec(
+//		prometheus.HistogramOpts{
+//			Name: "http_request_duration_seconds",
+//			Help: "Duration of HTTP requests.",
+//		},
+//		[]string{"method"},
+//	)
+//)
+
 func (h *Handler) getUserBanner(ctx *gin.Context) {
+	//start := time.Now()
+	//defer func() {
+	//	method := ctx.Request.Method
+	//	elapsed := time.Since(start).Seconds()
+	//	RequestDuration.WithLabelValues(method).Observe(elapsed)
+	//}()
+
 	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
 		h.logger.Error().Err(err).
