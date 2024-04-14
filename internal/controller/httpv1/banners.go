@@ -22,6 +22,7 @@ func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
 	}
 
 	userBanner := api.Group("", h.userIdentity)
+	userBanner.Use(metrics.PrometheusMiddleware())
 	{
 		userBanner.GET("/user_banner", h.getUserBanner)
 	}

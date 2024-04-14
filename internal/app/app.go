@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 // @title Avito Banners API
@@ -37,6 +38,8 @@ func Run(configPath string) {
 
 	cache := cache2.NewRedisCache(cfg.Cache)
 	logs.Logger.Info().Msg("Initialized connection pool Cache")
+
+	time.Sleep(15 * time.Second)
 
 	dbPool := postgresql.NewConnectionPool(cfg.PostgreSQL, logs)
 	logs.Logger.Info().Msg("Initialized connection pool DB")

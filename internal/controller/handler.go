@@ -40,10 +40,10 @@ func NewHandler(bannersService service.Banners, tagsService service.Tags,
 }
 
 func (h *Handler) Init(host string, port string) *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
 	router.Use(
+		gin.LoggerWithWriter(gin.DefaultWriter, "/metrics"),
 		gin.Recovery(),
-		gin.Logger(),
 	)
 
 	router.GET("/ping", func(c *gin.Context) {

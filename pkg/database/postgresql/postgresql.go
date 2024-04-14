@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"avito-test2024-spring/internal/config"
+	"avito-test2024-spring/pkg/database/postgresql/dbscripts"
 	"avito-test2024-spring/pkg/logger"
 	"context"
 	"fmt"
@@ -15,7 +16,7 @@ func NewConnectionPool(cfg config.PostgreSQLConfig, logs *logger.Logs) *pgxpool.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	pool, err := pgxpool.New(ctx, getConnectionString(cfg)) // TODO implement connection string
+	pool, err := pgxpool.New(ctx, getConnectionString(cfg))
 	if err != nil {
 		logs.Logger.Error().Msg("error while connecting to DB")
 		return nil
@@ -24,13 +25,20 @@ func NewConnectionPool(cfg config.PostgreSQLConfig, logs *logger.Logs) *pgxpool.
 	err = pool.Ping(context.Background())
 	if err != nil {
 		logs.Logger.Error().Msg("error while testing DB connection")
+		logs.Logger.Error().Msg(err.Error())
+		return nil
+	}
+
+	_, err = pool.Exec(context.Background(), dbscripts.Create)
+	if err != nil {
+		logs.Logger.Error().Msg("error while creating DB scheme")
+		logs.Logger.Error().Msg(err.Error())
 		return nil
 	}
 
 	return pool
 }
 
-// TODO заменить на переменные окружения
 func getConnectionString(cfg config.PostgreSQLConfig) string {
 	return fmt.Sprintf("postgresql://%v:%v@%v:%v/%v", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 }

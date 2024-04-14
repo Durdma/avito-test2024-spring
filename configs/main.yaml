@@ -14,10 +14,10 @@ logger:
   maxAge: 30
 
 postgresql:
-  host: localhost
+  host: postgresdb
   port: 5432
-  user: postgres
-  password: zxc13243546
+  user: postgress
+  password: postgress
   dbname: banners_db
   sslmode: disabled
   maxIdleConnections: 5
@@ -26,7 +26,7 @@ postgresql:
   driverName: postgres
 
 redis:
-  host: localhost
+  host: avito-test2024-spring-redis-1
   port: 6379
   db: 5
   cacheTTL: 300s

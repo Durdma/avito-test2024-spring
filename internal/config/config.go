@@ -62,7 +62,6 @@ type RedisConfig struct {
 }
 
 func Init(path string) (*Config, error) {
-	// TODO add defaults for all configs
 	// setDefault()
 
 	var cfg Config

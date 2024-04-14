@@ -9,9 +9,6 @@ import (
 	"os"
 )
 
-// TODO reformat logger and create methods for logging
-// TODO use gin logger
-
 type Logs struct {
 	Logger zerolog.Logger
 }
