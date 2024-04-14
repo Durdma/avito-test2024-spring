@@ -16,7 +16,12 @@ import (
 	"syscall"
 )
 
-// TODO rewrite initial script for DB; add users table with ids and their tags
+// @title Avito Banners API
+// @version 1.0
+// @description API для управления баннерами
+
+// @host localhost:8080
+// @BasePath /api/v1
 
 func Run(configPath string) {
 	cfg, err := config.Init(configPath)
@@ -51,7 +56,7 @@ func Run(configPath string) {
 	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, services.Users, logs, tokenManager, cache)
 	logs.Info().Msg("Initialized handlers")
 
-	srv := server.NewServer(cfg.HTTP, handlers.Init("local", cfg.HTTP.Port))
+	srv := server.NewServer(cfg.HTTP, handlers.Init("localhost", cfg.HTTP.Port))
 	go func() {
 		if err := srv.Run(); err != nil {
 			logs.Error().Err(err).Msg("error occurred while running http server")
