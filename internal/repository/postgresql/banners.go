@@ -359,9 +359,6 @@ func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bann
     										END IF;
 										END $$;`, bannerId, t.ID, featureId, bannerId, t.ID, featureId)
 
-			fmt.Println(query)
-			fmt.Println(tagsId)
-
 			_, err := tx.Exec(ctx, query)
 			if err != nil {
 				return err

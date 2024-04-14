@@ -5,8 +5,9 @@ import (
 	"avito-test2024-spring/internal/repository"
 	"avito-test2024-spring/pkg/auth"
 	"context"
-	"errors"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,69 +28,99 @@ type UserAddInput struct {
 	TagId   int
 }
 
-func (s *UsersService) AddUser(ctx context.Context, input UserAddInput) (string, error) {
+func (s *UsersService) AddUser(ctx context.Context, input UserAddInput) (string, models.ErrService) {
 	user := models.User{
 		TagId:   input.TagId,
 		IsAdmin: input.IsAdmin,
 	}
 
 	if user.TagId < 0 {
-		return "", errors.New("users tag id must be greater or equal to 0")
+		return "", models.NewErrorService(http.StatusBadRequest, "users tag_id must be greater or equal to 0")
 	}
 
 	userId, err := s.repo.Create(ctx, user)
 	if err != nil {
-		return "", err
+		return "", models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
 	accessToken, err := s.tokenManager.NewJWT(strconv.FormatInt(int64(userId), 10), 2*time.Second)
 	if err != nil {
-		return "", err
+		return "", models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
-	return accessToken, nil
+	return accessToken, models.ErrService{}
 }
 
-func (s *UsersService) UpdateUser(ctx context.Context, input models.User) error {
+func (s *UsersService) UpdateUser(ctx context.Context, input models.User) models.ErrService {
 	if input.Id <= 0 {
-		return errors.New("users id must be greater than 0")
+		return models.NewErrorService(http.StatusBadRequest, "users_id must be greater than 0")
 	}
 
 	if input.TagId < 0 {
-		return errors.New("users tag id must be greater or equal to 0")
+		return models.NewErrorService(http.StatusBadRequest, "users tag_id must be greater or equal to 0")
 	}
 
-	return s.repo.Update(ctx, input)
+	err := s.repo.Update(ctx, input)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return models.NewErrorService(http.StatusNotFound, err.Error())
+		}
+
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return models.ErrService{}
 }
 
-func (s *UsersService) DeleteUser(ctx context.Context, userId int) error {
+func (s *UsersService) DeleteUser(ctx context.Context, userId int) models.ErrService {
 	if userId <= 0 {
-		return errors.New("users id must be greater than 0")
+		return models.NewErrorService(http.StatusBadRequest, "users_id must be greater than 0")
 	}
 
-	return s.repo.Delete(ctx, userId)
+	err := s.repo.Delete(ctx, userId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return models.NewErrorService(http.StatusNotFound, err.Error())
+		}
+	}
+
+	return models.ErrService{}
 }
 
-func (s *UsersService) GetUserById(ctx context.Context, userId int) (models.User, error) {
+func (s *UsersService) GetUserById(ctx context.Context, userId int) (models.User, models.ErrService) {
 	if userId <= 0 {
-		return models.User{}, errors.New("users id must be greater than 0")
+		return models.User{}, models.NewErrorService(http.StatusBadRequest, "users_id must be greater than 0")
 	}
 
-	return s.repo.GetUserById(ctx, userId)
+	user, err := s.repo.GetUserById(ctx, userId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return models.User{}, models.NewErrorService(http.StatusNotFound, err.Error())
+		}
+
+		return models.User{}, models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return user, models.ErrService{}
 }
 
-func (s *UsersService) GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, error) {
+func (s *UsersService) GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, models.ErrService) {
 	if limit < 0 {
-		return nil, errors.New("limit must be greater than 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "limit must be greater than 0")
 	}
 
 	if offset < 0 {
-		return nil, errors.New("offset must be greater or equal to 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "offset must be greater or equal to 0")
 	}
 
 	if tagId < 0 {
-		return nil, errors.New("users tag id must be greater or equal to 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "users tag_id must be greater or equal to 0")
 	}
 
-	return s.repo.GetAllUsers(ctx, tagId, limit, offset)
+	users, err := s.repo.GetAllUsers(ctx, tagId, limit, offset)
+	if err != nil {
+		return nil, models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return users, models.ErrService{}
 }

@@ -10,24 +10,23 @@ import (
 const (
 	authorizationHeader = "Authorization"
 	userCtx             = "userRole"
-	adminCtx            = "isAdmin"
 )
 
 func (h *Handler) userIdentity(ctx *gin.Context) {
 	header := ctx.GetHeader(authorizationHeader)
 	if header == "" {
-		newErrorResponse(ctx, http.StatusUnauthorized, "empty auth header")
+		newErrorResponse(ctx, http.StatusUnauthorized, "Пользователь не авторизован")
 		return
 	}
 
 	headerParts := strings.Split(header, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		newErrorResponse(ctx, http.StatusUnauthorized, "invalid auth header")
+		newErrorResponse(ctx, http.StatusUnauthorized, "Пользователь не авторизован")
 		return
 	}
 
 	if len(headerParts[1]) == 0 {
-		newErrorResponse(ctx, http.StatusUnauthorized, "token is empty")
+		newErrorResponse(ctx, http.StatusUnauthorized, "Пользователь не авторизован")
 		return
 	}
 
@@ -39,12 +38,18 @@ func (h *Handler) userIdentity(ctx *gin.Context) {
 
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
-		newErrorResponse(ctx, http.StatusUnauthorized, "invalid user_id")
+		newErrorResponse(ctx, http.StatusUnauthorized, "Пользователь не авторизован")
 		return
 	}
 
-	user, err := h.usersService.GetUserById(ctx, userId)
-	if err != nil {
+	user, errResponse := h.usersService.GetUserById(ctx, userId)
+	if errResponse.Status != 0 {
+		if errResponse.Status == http.StatusNotFound {
+			newErrorResponse(ctx, http.StatusUnauthorized, "Пользователь не авторизован")
+			return
+		}
+
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 

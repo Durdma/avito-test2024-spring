@@ -9,31 +9,31 @@ import (
 )
 
 type Banners interface {
-	AddBanner(ctx context.Context, input BannerAddInput) (int, error)
-	UpdateBanner(ctx context.Context) error
-	DeleteBanner(ctx context.Context, bannerId int) error
-	GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, error)
-	GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, error)
+	AddBanner(ctx context.Context, input BannerAddInput) (int, models.ErrService)
+	UpdateBanner(ctx context.Context) models.ErrService
+	DeleteBanner(ctx context.Context, bannerId int) models.ErrService
+	GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, models.ErrService)
+	GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, models.ErrService)
 }
 
 type Tags interface {
-	AddTag(ctx context.Context) error
-	DeleteTag(ctx context.Context, tagId int) error
-	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error)
+	AddTag(ctx context.Context) models.ErrService
+	DeleteTag(ctx context.Context, tagId int) models.ErrService
+	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, models.ErrService)
 }
 
 type Features interface {
-	AddFeature(ctx context.Context) error
-	DeleteFeature(ctx context.Context, featureId int) error
-	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, error)
+	AddFeature(ctx context.Context) models.ErrService
+	DeleteFeature(ctx context.Context, featureId int) models.ErrService
+	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, models.ErrService)
 }
 
 type Users interface {
-	AddUser(ctx context.Context, input UserAddInput) (string, error)
-	UpdateUser(ctx context.Context, input models.User) error
-	DeleteUser(ctx context.Context, userId int) error
-	GetUserById(ctx context.Context, userId int) (models.User, error)
-	GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, error)
+	AddUser(ctx context.Context, input UserAddInput) (string, models.ErrService)
+	UpdateUser(ctx context.Context, input models.User) models.ErrService
+	DeleteUser(ctx context.Context, userId int) models.ErrService
+	GetUserById(ctx context.Context, userId int) (models.User, models.ErrService)
+	GetAllUsers(ctx context.Context, tagId int, limit int, offset int) ([]models.User, models.ErrService)
 }
 
 type Services struct {

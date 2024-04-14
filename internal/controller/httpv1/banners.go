@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
@@ -20,9 +19,12 @@ func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
 		banners.PATCH("/:id", h.bannersUpdate)
 		banners.DELETE("/:id", h.bannersDelete)
 		banners.GET("", h.bannersGetAll)
-		banners.GET("/user_banner", h.getUserBanner)
 	}
 
+	userBanner := api.Group("", h.userIdentity)
+	{
+		userBanner.GET("/user_banner", h.getUserBanner)
+	}
 }
 
 type bannersAddContent struct {
@@ -64,9 +66,9 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -89,13 +91,13 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 		Feature:  banner.Feature,
 		IsActive: banner.IsActive,
 	})
-	if err != nil {
-		h.logger.Error().Err(err).
+	if err.Status != 0 {
+		h.logger.Error().Err(errors.New(err.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("error while adding to db")
-		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+			Int("status_code", err.Status).
+			Msg(err.Error)
+		newErrorResponse(ctx, err.Status, err.Error)
 		return
 	}
 
@@ -125,9 +127,9 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -135,13 +137,13 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 	serviceCtx = context.WithValue(serviceCtx, "banner_id", ctx.Param("id"))
 
 	err := h.bannersService.UpdateBanner(serviceCtx)
-	if err != nil {
-		h.logger.Error().Err(err).
+	if err.Status != 0 {
+		h.logger.Error().Err(errors.New(err.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("error while adding to db")
-		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+			Int("status_code", err.Status).
+			Msg(err.Error)
+		newErrorResponse(ctx, err.Status, err.Error)
 		return
 	}
 
@@ -170,9 +172,9 @@ func (h *Handler) bannersDelete(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -187,24 +189,14 @@ func (h *Handler) bannersDelete(ctx *gin.Context) {
 		return
 	}
 
-	err = h.bannersService.DeleteBanner(ctx, bannerId)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.logger.Error().Err(err).
-				Str("method", ctx.Request.Method).
-				Str("url", ctx.Request.RequestURI).
-				Int("status_code", http.StatusNotFound).
-				Msg("")
-			newErrorResponse(ctx, http.StatusNotFound, err.Error())
-			return
-		}
-
+	errResponse := h.bannersService.DeleteBanner(ctx, bannerId)
+	if errResponse.Status != 0 {
 		h.logger.Error().Err(err).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResponse.Status).
+			Msg(errResponse.Error)
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 
@@ -234,9 +226,9 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -300,14 +292,14 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 		featureId = 0
 	}
 
-	banners, err := h.bannersService.GetAllBanners(ctx, featureId, tagId, limit, offset)
-	if err != nil {
+	banners, errResponse := h.bannersService.GetAllBanners(ctx, featureId, tagId, limit, offset)
+	if errResponse.Status != 0 {
 		h.logger.Error().Err(err).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResponse.Status).
+			Msg(errResponse.Error)
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 
@@ -325,7 +317,6 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 // @Param tag_id query integer true "User tag"
 // @Param feature_id query integer true "Feature ID"
 // @Param use_last_revision query boolean false "Get the latest information" default(false)
-// @Param token header string true "User token"
 // @Success 200 {object} models.Banner "User banner"
 // @Failure 400 {object} errorResponse "Invalid data provided"
 // @Failure 401 {string} string "Unauthorized access"
@@ -394,14 +385,14 @@ func (h *Handler) getUserBanner(ctx *gin.Context) {
 		}
 	}
 
-	banner, err := h.bannersService.GetUserBanner(ctx, featureId, tagId, lastRevision)
-	if err != nil {
+	banner, errResponse := h.bannersService.GetUserBanner(ctx, featureId, tagId, lastRevision)
+	if errResponse.Status != 0 {
 		h.logger.Error().Err(err).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResponse.Status).
+			Msg(errResponse.Error)
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 

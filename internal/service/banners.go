@@ -6,9 +6,10 @@ import (
 	"avito-test2024-spring/pkg/cache"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -33,7 +34,7 @@ type BannerAddInput struct {
 	IsActive bool
 }
 
-func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) (int, error) {
+func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) (int, models.ErrService) {
 	var banner models.AdminBanner
 
 	bannerContent := models.Banner{
@@ -44,19 +45,19 @@ func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) (i
 
 	err := bannerContent.ValidateBanner()
 	if err != nil {
-		return -1, err
+		return -1, models.NewErrorService(http.StatusBadRequest, err.Error())
 	}
 
 	banner.Content = bannerContent
 
 	err = banner.ValidateAndSetFeature(input.Feature)
 	if err != nil {
-		return -1, err
+		return -1, models.NewErrorService(http.StatusBadRequest, err.Error())
 	}
 
 	err = banner.ValidateAndSetTags(input.Tags)
 	if err != nil {
-		return -1, err
+		return -1, models.NewErrorService(http.StatusBadRequest, err.Error())
 	}
 
 	banner.IsActive = input.IsActive
@@ -64,7 +65,12 @@ func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) (i
 	banner.CreatedAt = time.Now()
 	banner.UpdatedAt = time.Now()
 
-	return s.repo.Create(ctx, banner)
+	bannerId, err := s.repo.Create(ctx, banner)
+	if err != nil {
+		return -1, models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return bannerId, models.ErrService{}
 }
 
 type bannersUpdateContent struct {
@@ -86,15 +92,18 @@ func (i *bannersUpdateInput) setTags(tags []models.Tag) {
 	}
 }
 
-func (s *BannersService) UpdateBanner(ctx context.Context) error {
+func (s *BannersService) UpdateBanner(ctx context.Context) models.ErrService {
 	bannerId, err := strconv.Atoi(ctx.Value("banner_id").(string))
 	if err != nil {
-		return err
+		return models.NewErrorService(http.StatusBadRequest, err.Error())
 	}
 
 	bannerOld, err := s.repo.GetBannerByID(ctx, bannerId)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), "not found") {
+			return models.NewErrorService(http.StatusNotFound, err.Error())
+		}
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
 	bannerInput := bannersUpdateInput{
@@ -108,7 +117,7 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 	}
 
 	if err := json.NewDecoder(ctx.Value("request_body").(io.Reader)).Decode(&bannerInput); err != nil {
-		return err
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
 	var banner models.AdminBanner
@@ -121,7 +130,7 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 
 	err = bannerContent.ValidateBanner()
 	if err != nil {
-		return err
+		return models.NewErrorService(http.StatusBadRequest, err.Error())
 	}
 
 	banner.Content = bannerContent
@@ -131,7 +140,7 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 	} else {
 		err = banner.ValidateAndSetFeature(bannerInput.Feature)
 		if err != nil {
-			return err
+			return models.NewErrorService(http.StatusBadRequest, err.Error())
 		}
 	}
 
@@ -139,7 +148,7 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 
 	toDel, err := banner.ValidateAndUpdateTags(bannerInput.Tags)
 	if err != nil {
-		return err
+		return models.NewErrorService(http.StatusBadRequest, err.Error())
 	}
 
 	banner.CreatedAt = bannerOld.CreatedAt
@@ -149,99 +158,121 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 
 	err = s.repo.Update(ctx, banner, toDel)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), "not found") {
+			return models.NewErrorService(http.StatusNotFound, err.Error())
+		}
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
 	if (bannerOld.IsActive != banner.IsActive) && (banner.IsActive == false) {
 		err = s.cache.Delete(banner.ID)
 		if err != nil {
-			return err
+			return models.NewErrorService(http.StatusInternalServerError, err.Error())
 		}
 	}
 
-	return nil
+	return models.ErrService{}
 }
 
-func (s *BannersService) DeleteBanner(ctx context.Context, bannerId int) error {
+func (s *BannersService) DeleteBanner(ctx context.Context, bannerId int) models.ErrService {
 	if bannerId <= 0 {
-		return errors.New("banner id must be greater than 0")
+		return models.NewErrorService(http.StatusBadRequest, "banner id must be greater than 0")
 	}
 
 	err := s.repo.Delete(ctx, bannerId)
 	if err != nil {
-		return err
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
 	err = s.cache.Delete(bannerId)
 	if err != nil {
-		return err
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
-	return err
+	return models.ErrService{}
 }
 
 // TODO refactor response json banner like api scheme
-func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, error) {
+func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, models.ErrService) {
 	if tagId < 0 {
-		return models.Banner{}, errors.New("tag id must be greater or equal to 0")
+		return models.Banner{}, models.NewErrorService(http.StatusBadRequest, "tag_id must be greater or equal to 0")
 	}
 
 	if featureId < 0 {
-		return models.Banner{}, errors.New("feature id must be greater or equal to 0")
+		return models.Banner{}, models.NewErrorService(http.StatusBadRequest, "feature_id must be greater or equal to 0")
 	}
 
 	if lastRevision {
 		banner, bannerId, err := s.repo.GetUserBanner(ctx, featureId, tagId)
 		if err != nil {
-			return models.Banner{}, err
+			if strings.Contains(err.Error(), "not found") {
+				banner, err = s.cache.Get(tagId, featureId)
+				if err != nil {
+					if strings.Contains(err.Error(), "not found") {
+						return models.Banner{}, models.NewErrorService(http.StatusNotFound, err.Error())
+					}
+					return models.Banner{}, models.NewErrorService(http.StatusInternalServerError, err.Error())
+				}
+				return banner, models.ErrService{}
+			} else {
+				return models.Banner{}, models.NewErrorService(http.StatusInternalServerError, err.Error())
+			}
 		}
 
 		err = s.cache.Set(banner, tagId, featureId, bannerId)
 		if err != nil {
-			return banner, err
+			return banner, models.NewErrorService(http.StatusInternalServerError, err.Error())
 		}
 
-		return banner, nil
+		return banner, models.ErrService{}
 	} else {
 		banner, err := s.cache.Get(tagId, featureId)
 		if err != nil {
 			if err.Error() == "not found" {
 				banner, bannerId, err := s.repo.GetUserBanner(ctx, featureId, tagId)
 				if err != nil {
-					return models.Banner{}, err
+					if strings.Contains(err.Error(), "not found") {
+						return models.Banner{}, models.NewErrorService(http.StatusNotFound, err.Error())
+					}
+					return models.Banner{}, models.NewErrorService(http.StatusInternalServerError, err.Error())
 				}
 
 				err = s.cache.Set(banner, tagId, featureId, bannerId)
 				if err != nil {
-					return banner, err
+					return banner, models.NewErrorService(http.StatusInternalServerError, err.Error())
 				}
 
-				return banner, nil
+				return banner, models.ErrService{}
 			} else {
-				return models.Banner{}, err
+				return models.Banner{}, models.NewErrorService(http.StatusInternalServerError, err.Error())
 			}
 		}
 
-		return banner, err
+		return banner, models.ErrService{}
 	}
 }
 
-func (s *BannersService) GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, error) {
+func (s *BannersService) GetAllBanners(ctx context.Context, featureId, tagId, limit, offset int) ([]models.AdminBanner, models.ErrService) {
 	if limit < 0 {
-		return nil, errors.New("limit must be greater than 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "limit must be greater than 0")
 	}
 
 	if offset < 0 {
-		return nil, errors.New("offset must be greater or equal to 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "offset must be greater or equal to 0")
 	}
 
 	if tagId < 0 {
-		return nil, errors.New("tag id must be greater or equal to 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "tag_id must be greater or equal to 0")
 	}
 
 	if featureId < 0 {
-		return nil, errors.New("feature id must be greater or equal to 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "feature_id must be greater or equal to 0")
 	}
 
-	return s.repo.GetAllBanners(ctx, featureId, tagId, limit, offset)
+	banners, err := s.repo.GetAllBanners(ctx, featureId, tagId, limit, offset)
+	if err != nil {
+		return nil, models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return banners, models.ErrService{}
 }

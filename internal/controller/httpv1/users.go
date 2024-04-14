@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
@@ -51,17 +50,17 @@ func (h *Handler) addUser(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.usersService.AddUser(ctx, service.UserAddInput{
+	accessToken, errResp := h.usersService.AddUser(ctx, service.UserAddInput{
 		TagId:   user.TagId,
 		IsAdmin: user.IsAdmin,
 	})
-	if err != nil {
-		h.logger.Error().Err(err).
+	if errResp.Status != 0 {
+		h.logger.Error().Err(errors.New(errResp.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("error while adding to db")
-		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+			Int("status_code", errResp.Status).
+			Msg(errResp.Error)
+		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
 
@@ -109,24 +108,14 @@ func (h *Handler) updateUser(ctx *gin.Context) {
 		IsAdmin: userInput.IsAdmin,
 	}
 
-	err = h.usersService.UpdateUser(ctx, user)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.logger.Error().Err(err).
-				Str("method", ctx.Request.Method).
-				Str("url", ctx.Request.RequestURI).
-				Int("status_code", http.StatusNotFound).
-				Msg("")
-			newErrorResponse(ctx, http.StatusNotFound, err.Error())
-			return
-		}
-
-		h.logger.Error().Err(err).
+	errResp := h.usersService.UpdateUser(ctx, user)
+	if errResp.Status != 0 {
+		h.logger.Error().Err(errors.New(errResp.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResp.Status).
+			Msg(errResp.Error)
+		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
 
@@ -156,24 +145,14 @@ func (h *Handler) getUserById(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.usersService.GetUserById(ctx, userId)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.logger.Error().Err(err).
-				Str("method", ctx.Request.Method).
-				Str("url", ctx.Request.RequestURI).
-				Int("status_code", http.StatusNotFound).
-				Msg("")
-			newErrorResponse(ctx, http.StatusNotFound, err.Error())
-			return
-		}
-
-		h.logger.Error().Err(err).
+	user, errResp := h.usersService.GetUserById(ctx, userId)
+	if errResp.Status != 0 {
+		h.logger.Error().Err(errors.New(errResp.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResp.Status).
+			Msg(errResp.Error)
+		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
 
@@ -237,14 +216,14 @@ func (h *Handler) getAllUsers(ctx *gin.Context) {
 		tagId = 0
 	}
 
-	users, err := h.usersService.GetAllUsers(ctx, tagId, limit, offset)
-	if err != nil {
-		h.logger.Error().Err(err).
+	users, errResp := h.usersService.GetAllUsers(ctx, tagId, limit, offset)
+	if errResp.Status != 0 {
+		h.logger.Error().Err(errors.New(errResp.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResp.Status).
+			Msg(errResp.Error)
+		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
 
@@ -272,24 +251,14 @@ func (h *Handler) deleteUser(ctx *gin.Context) {
 		return
 	}
 
-	err = h.usersService.DeleteUser(ctx, userId)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.logger.Error().Err(err).
-				Str("method", ctx.Request.Method).
-				Str("url", ctx.Request.RequestURI).
-				Int("status_code", http.StatusNotFound).
-				Msg("")
-			newErrorResponse(ctx, http.StatusNotFound, err.Error())
-			return
-		}
-
-		h.logger.Error().Err(err).
+	errResp := h.usersService.DeleteUser(ctx, userId)
+	if errResp.Status != 0 {
+		h.logger.Error().Err(errors.New(errResp.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResp.Status).
+			Msg(errResp.Error)
+		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
 

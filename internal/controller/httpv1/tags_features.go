@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func (h *Handler) initTagsFeaturesRoutes(api *gin.RouterGroup) {
@@ -41,19 +40,19 @@ func (h *Handler) addTag(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
 	err := h.tagsService.AddTag(ctx)
-	if err != nil {
-		h.logger.Error().Err(err).
+	if err.Status != 0 {
+		h.logger.Error().Err(errors.New(err.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", err.Status).Msg(err.Error)
+		newErrorResponse(ctx, err.Status, err.Error)
 		return
 	}
 
@@ -79,9 +78,9 @@ func (h *Handler) deleteTag(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -96,28 +95,18 @@ func (h *Handler) deleteTag(ctx *gin.Context) {
 		return
 	}
 
-	err = h.tagsService.DeleteTag(ctx, tagId)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.logger.Error().Err(err).
-				Str("method", ctx.Request.Method).
-				Str("url", ctx.Request.RequestURI).
-				Int("status_code", http.StatusNotFound).
-				Msg("")
-			newErrorResponse(ctx, http.StatusNotFound, err.Error())
-			return
-		}
-
-		h.logger.Error().Err(err).
+	errResponse := h.tagsService.DeleteTag(ctx, tagId)
+	if errResponse.Status != 0 {
+		h.logger.Error().Err(errors.New(errResponse.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResponse.Status).
+			Msg(errResponse.Error)
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }
 
 // @Summary Получение всех тэгов
@@ -139,9 +128,9 @@ func (h *Handler) getAllTags(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -175,14 +164,14 @@ func (h *Handler) getAllTags(ctx *gin.Context) {
 		offset = 0
 	}
 
-	tags, err := h.tagsService.GetAllTags(ctx, limit, offset)
-	if err != nil {
-		h.logger.Error().Err(err).
+	tags, errResponse := h.tagsService.GetAllTags(ctx, limit, offset)
+	if errResponse.Status != 0 {
+		h.logger.Error().Err(errors.New(errResponse.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
-			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", errResponse.Status).
+			Msg(errResponse.Error)
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 
@@ -206,19 +195,20 @@ func (h *Handler) addFeature(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
 	err := h.featuresService.AddFeature(ctx)
-	if err != nil {
-		h.logger.Error().Err(err).
+	if err.Status != 0 {
+		h.logger.Error().Err(errors.New(err.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			Int("status_code", err.Status).
+			Msg(err.Error)
+		newErrorResponse(ctx, err.Status, err.Error)
 		return
 	}
 
@@ -244,9 +234,9 @@ func (h *Handler) deleteFeature(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -261,24 +251,14 @@ func (h *Handler) deleteFeature(ctx *gin.Context) {
 		return
 	}
 
-	err = h.featuresService.DeleteFeature(ctx, featureId)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			h.logger.Error().Err(err).
-				Str("method", ctx.Request.Method).
-				Str("url", ctx.Request.RequestURI).
-				Int("status_code", http.StatusNotFound).
-				Msg("")
-			newErrorResponse(ctx, http.StatusNotFound, err.Error())
-			return
-		}
-
-		h.logger.Error().Err(err).
+	errResponse := h.featuresService.DeleteFeature(ctx, featureId)
+	if errResponse.Status != 0 {
+		h.logger.Error().Err(errors.New(errResponse.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
+			Int("status_code", errResponse.Status).
 			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 
@@ -304,9 +284,9 @@ func (h *Handler) getAllFeatures(ctx *gin.Context) {
 		h.logger.Error().
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusUnauthorized).
+			Int("status_code", http.StatusForbidden).
 			Msg("not admin")
-		newErrorResponse(ctx, http.StatusUnauthorized, "not admin")
+		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
@@ -340,14 +320,14 @@ func (h *Handler) getAllFeatures(ctx *gin.Context) {
 		offset = 0
 	}
 
-	tags, err := h.featuresService.GetAllFeatures(ctx, limit, offset)
-	if err != nil {
-		h.logger.Error().Err(err).
+	tags, errResponse := h.featuresService.GetAllFeatures(ctx, limit, offset)
+	if errResponse.Status != 0 {
+		h.logger.Error().Err(errors.New(errResponse.Error)).
 			Str("method", ctx.Request.Method).
 			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusInternalServerError).
+			Int("status_code", errResponse.Status).
 			Msg("")
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
 

@@ -17,10 +17,10 @@ type Banner struct {
 }
 
 type AdminBanner struct {
-	ID      int     `json:"id"`
+	ID      int     `json:"banner_id"`
 	Content Banner  `json:"content"`
 	Tags    []Tag   `json:"tags_ids"`
-	Feature Feature `json:"feature"`
+	Feature Feature `json:"feature_id"`
 
 	IsActive bool `json:"is_active"`
 
@@ -33,7 +33,7 @@ type Feature struct {
 }
 
 type Tag struct {
-	ID int `json:"tags_id"`
+	ID int `json:"tag_id"`
 }
 
 func (b *Banner) ValidateBanner() error {
@@ -99,6 +99,9 @@ func (b *AdminBanner) ValidateAndUpdateTags(newTags []int) ([]int, error) {
 	toDel := make([]int, 0)
 
 	for _, t := range newTags {
+		if t == 0 {
+			continue
+		}
 		if slices.Contains(tagsInt, t) {
 			b.Tags = slices.Delete(b.Tags, slices.Index(tagsInt, t), slices.Index(tagsInt, t)+1)
 			tagsInt = slices.Delete(tagsInt, slices.Index(tagsInt, t), slices.Index(tagsInt, t)+1)
@@ -116,8 +119,13 @@ func (b *AdminBanner) ValidateAndUpdateTags(newTags []int) ([]int, error) {
 }
 
 func (b *AdminBanner) ValidateAndSetFeature(feature int) error {
+	if feature == -1 {
+		b.Feature.ID = 0
+		return nil
+	}
+
 	if feature < 0 {
-		return errors.New(fmt.Sprintf("feature id must be greater or equal to 0, but have %v", feature))
+		return errors.New("feature_id must be greater than 0")
 	}
 
 	b.Feature.ID = feature

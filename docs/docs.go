@@ -717,13 +717,6 @@ const docTemplate = `{
                         "description": "Get the latest information",
                         "name": "use_last_revision",
                         "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "User token",
-                        "name": "token",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -1062,7 +1055,7 @@ const docTemplate = `{
         "httpv1.errorResponse": {
             "type": "object",
             "properties": {
-                "message": {
+                "error": {
                     "type": "string"
                 }
             }
@@ -1070,17 +1063,17 @@ const docTemplate = `{
         "models.AdminBanner": {
             "type": "object",
             "properties": {
+                "banner_id": {
+                    "type": "integer"
+                },
                 "content": {
                     "$ref": "#/definitions/models.Banner"
                 },
                 "created_at": {
                     "type": "string"
                 },
-                "feature": {
+                "feature_id": {
                     "$ref": "#/definitions/models.Feature"
-                },
-                "id": {
-                    "type": "integer"
                 },
                 "is_active": {
                     "type": "boolean"
@@ -1121,7 +1114,7 @@ const docTemplate = `{
         "models.Tag": {
             "type": "object",
             "properties": {
-                "tags_id": {
+                "tag_id": {
                     "type": "integer"
                 }
             }

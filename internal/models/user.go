@@ -1,7 +1,5 @@
 package models
 
-//TODO add auth manager
-
 type User struct {
 	Id      int  `json:"id"`
 	TagId   int  `json:"tag_id"`

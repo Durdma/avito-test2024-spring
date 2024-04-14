@@ -4,7 +4,8 @@ import (
 	"avito-test2024-spring/internal/models"
 	"avito-test2024-spring/internal/repository"
 	"context"
-	"errors"
+	"net/http"
+	"strings"
 )
 
 type TagsService struct {
@@ -17,26 +18,46 @@ func NewTagsService(repo repository.Tags) *TagsService {
 	}
 }
 
-func (s *TagsService) AddTag(ctx context.Context) error {
-	return s.repo.Create(ctx)
-}
+func (s *TagsService) AddTag(ctx context.Context) models.ErrService {
 
-func (s *TagsService) DeleteTag(ctx context.Context, tagId int) error {
-	if tagId <= 0 {
-		return errors.New("index of tag must be greater than 0")
+	err := s.repo.Create(ctx)
+	if err != nil {
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
-	return s.repo.Delete(ctx, tagId)
+	return models.ErrService{}
 }
 
-func (s *TagsService) GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error) {
+func (s *TagsService) DeleteTag(ctx context.Context, tagId int) models.ErrService {
+	if tagId <= 0 {
+		return models.NewErrorService(http.StatusBadRequest, "tag_id must be greater than 0")
+	}
+
+	err := s.repo.Delete(ctx, tagId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return models.NewErrorService(http.StatusNotFound, err.Error())
+		}
+
+		return models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return models.ErrService{}
+}
+
+func (s *TagsService) GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, models.ErrService) {
 	if limit < 0 {
-		return nil, errors.New("limit must be greater than 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "limit must be greater than 0")
 	}
 
 	if offset < 0 {
-		return nil, errors.New("offset must be greater or equal to 0")
+		return nil, models.NewErrorService(http.StatusBadRequest, "offset must be greater or equal to 0")
 	}
 
-	return s.repo.GetAllTags(ctx, limit, offset)
+	tags, err := s.repo.GetAllTags(ctx, limit, offset)
+	if err != nil {
+		return nil, models.NewErrorService(http.StatusInternalServerError, err.Error())
+	}
+
+	return tags, models.ErrService{}
 }
