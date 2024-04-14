@@ -9,7 +9,7 @@ import (
 )
 
 type Banners interface {
-	AddBanner(ctx context.Context, input BannerAddInput) error
+	AddBanner(ctx context.Context, input BannerAddInput) (int, error)
 	UpdateBanner(ctx context.Context) error
 	DeleteBanner(ctx context.Context, bannerId int) error
 	GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, error)

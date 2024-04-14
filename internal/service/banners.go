@@ -33,8 +33,7 @@ type BannerAddInput struct {
 	IsActive bool
 }
 
-// TODO add created_at and update_at fields update
-func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) error {
+func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) (int, error) {
 	var banner models.AdminBanner
 
 	bannerContent := models.Banner{
@@ -45,19 +44,19 @@ func (s *BannersService) AddBanner(ctx context.Context, input BannerAddInput) er
 
 	err := bannerContent.ValidateBanner()
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	banner.Content = bannerContent
 
 	err = banner.ValidateAndSetFeature(input.Feature)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	err = banner.ValidateAndSetTags(input.Tags)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	banner.IsActive = input.IsActive
@@ -81,7 +80,6 @@ type bannersUpdateInput struct {
 	IsActive bool                 `json:"is_active,omitempty"`
 }
 
-// TODO update adding tags
 func (i *bannersUpdateInput) setTags(tags []models.Tag) {
 	for _, t := range tags {
 		i.Tags = append(i.Tags, t.ID)
@@ -128,9 +126,13 @@ func (s *BannersService) UpdateBanner(ctx context.Context) error {
 
 	banner.Content = bannerContent
 
-	err = banner.ValidateAndSetFeature(bannerInput.Feature)
-	if err != nil {
-		return err
+	if bannerInput.Feature == 0 {
+		banner.Feature.ID = bannerOld.Feature.ID
+	} else {
+		err = banner.ValidateAndSetFeature(bannerInput.Feature)
+		if err != nil {
+			return err
+		}
 	}
 
 	banner.Tags = bannerOld.Tags
@@ -188,7 +190,6 @@ func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId
 		return models.Banner{}, errors.New("feature id must be greater or equal to 0")
 	}
 
-	// TODO add cache
 	if lastRevision {
 		banner, bannerId, err := s.repo.GetUserBanner(ctx, featureId, tagId)
 		if err != nil {

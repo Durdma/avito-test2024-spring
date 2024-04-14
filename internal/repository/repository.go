@@ -9,7 +9,7 @@ import (
 
 // TODO refactor query builders like in users repo
 type Banners interface {
-	Create(ctx context.Context, banner models.AdminBanner) error
+	Create(ctx context.Context, banner models.AdminBanner) (int, error)
 	Update(ctx context.Context, banner models.AdminBanner, toDel []int) error
 	Delete(ctx context.Context, bannerId int) error
 	GetBannerByID(ctx context.Context, bannerId int) (models.AdminBanner, error)
@@ -19,14 +19,12 @@ type Banners interface {
 
 type Tags interface {
 	Create(ctx context.Context) error
-	//Update(ctx context.Context, tag models.Tag) error //TODO Нужно ли это в рамках задачи
 	Delete(ctx context.Context, tagId int) error
 	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error)
 }
 
 type Features interface {
 	Create(ctx context.Context) error
-	//Update(ctx context.Context, feature models.Feature) error //TODO Нужно ли это в рамках задачи
 	Delete(ctx context.Context, featureId int) error
 	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, error)
 }

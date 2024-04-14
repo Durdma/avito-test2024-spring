@@ -21,7 +21,7 @@ func NewBannersRepo(db *pgxpool.Pool) *BannersRepo {
 	}
 }
 
-func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) error {
+func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) (int, error) {
 	var id int
 
 	query := `INSERT INTO banners (fk_feature_id, content, is_active, created_at, updated_at) VALUES (
@@ -44,27 +44,41 @@ func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) err
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	err = tx.QueryRow(ctx, query, args).Scan(&id)
 	if err != nil {
 		tx.Rollback(ctx)
-		return err
+		return -1, err
 	}
 
 	err = r.insertIntoBannersTags(ctx, tx, id, banner.Tags, banner.Feature.ID)
+	if err != nil {
+		tx.Rollback(ctx)
+		return -1, err
+	}
+
+	tx.Commit(ctx)
+	return id, nil
+}
+
+func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner, toDel []int) error {
+	var oldFeature int
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = tx.QueryRow(ctx, `SELECT COALESCE(fk_feature_id, 0) from banners where id=$1`, banner.ID).Scan(&oldFeature)
 	if err != nil {
 		tx.Rollback(ctx)
 		return err
 	}
 
 	tx.Commit(ctx)
-	return nil
-}
 
-// TODO add update banners_tags
-func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner, toDel []int) error {
 	query := `UPDATE banners SET fk_feature_id = @featureId, content = @contentIn,
     is_active = @isActive, created_at = @createdAt, updated_at = @updatedAt WHERE id = @bannerId`
 	args := pgx.NamedArgs{
@@ -81,7 +95,7 @@ func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner, toD
 		args["featureId"] = banner.Feature.ID
 	}
 
-	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	tx, err = r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return err
 	}
@@ -95,6 +109,35 @@ func (r *BannersRepo) Update(ctx context.Context, banner models.AdminBanner, toD
 	if res.RowsAffected() == 0 {
 		tx.Rollback(ctx)
 		return errors.New(fmt.Sprintf("banner with id=%v not found", banner.ID))
+	}
+
+	if banner.Feature.ID == 0 {
+		toDel := make([]int, 0, len(banner.Tags))
+		for _, t := range banner.Tags {
+			toDel = append(toDel, t.ID)
+		}
+
+		err = r.deleteBannerTag(ctx, tx, banner.ID, toDel)
+		if err != nil {
+			tx.Rollback(ctx)
+			return err
+		}
+
+		tx.Commit(ctx)
+		return nil
+	}
+
+	if (oldFeature != banner.Feature.ID) && (oldFeature != 0) {
+		toDel := make([]int, 0, len(banner.Tags))
+		for _, t := range banner.Tags {
+			toDel = append(toDel, t.ID)
+		}
+
+		err = r.deleteBannerTag(ctx, tx, banner.ID, toDel)
+		if err != nil {
+			tx.Rollback(ctx)
+			return err
+		}
 	}
 
 	err = r.insertIntoBannersTags(ctx, tx, banner.ID, banner.Tags, banner.Feature.ID)
@@ -316,6 +359,9 @@ func (r *BannersRepo) insertIntoBannersTags(ctx context.Context, tx pgx.Tx, bann
     										END IF;
 										END $$;`, bannerId, t.ID, featureId, bannerId, t.ID, featureId)
 
+			fmt.Println(query)
+			fmt.Println(tagsId)
+
 			_, err := tx.Exec(ctx, query)
 			if err != nil {
 				return err
@@ -383,6 +429,5 @@ func (r *BannersRepo) deleteBannerTag(ctx context.Context, tx pgx.Tx, bannerId i
 		}
 	}
 
-	tx.Commit(ctx)
 	return nil
 }
