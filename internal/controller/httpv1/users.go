@@ -27,6 +27,18 @@ type UserInput struct {
 	TagId   int  `json:"tag_id,omitempty"`
 }
 
+// TODO swagger refactor after errorResponse reimplemented
+
+// @Summary Creates a new user
+// @Description Создание нового пользователя
+// @Tags user
+// @ID create-user
+// @Accept json
+// @Param body body UserInput true "User creation request"
+// @Success 201 {string} string "Пользователь успешно создан"
+// @Failure 400 {object} errorResponse "Invalid data provided"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
+// @Router /users [post]
 func (h *Handler) addUser(ctx *gin.Context) {
 	var user UserInput
 	if err := json.NewDecoder(ctx.Request.Body).Decode(&user); err != nil {
@@ -56,6 +68,18 @@ func (h *Handler) addUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, map[string]string{"access_token": accessToken})
 }
 
+// @Summary Обновление пользователя
+// @Description Этот эндпоинт предназначен для обновления пользователя по его идентификатору.
+// @Tags user
+// @ID update-user
+// @Accept json
+// @Param id path integer true "Идентификатор пользователя"
+// @Param body body UserInput true "Запрос на обновление пользователя"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} errorResponse "Некорректные данные"
+// @Failure 404 {string} string "Пользователь не найден"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
+// @Router /users/{id} [patch]
 func (h *Handler) updateUser(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -109,6 +133,17 @@ func (h *Handler) updateUser(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+// @Summary Получение пользователя по идентификатору
+// @Description Этот эндпоинт предназначен для получения пользователя по его идентификатору.
+// @Tags user
+// @ID get-user
+// @Produce json
+// @Param id path integer true "Идентификатор пользователя"
+// @Success 200 {object} models.User "OK"
+// @Failure 400 {object} errorResponse "Некорректные данные"
+// @Failure 404 {string} string "Пользователь не найден"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
+// @Router /users/{id} [get]
 func (h *Handler) getUserById(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -145,6 +180,17 @@ func (h *Handler) getUserById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @Summary Получение всех пользователей с фильтрацией по тегу
+// @Tags user
+// @Description Этот эндпоинт предназначен для получения всех пользователей с фильтрацией по тегу
+// @ID get-users
+// @Produce json
+// @Param tag_id query integer false "Идентификатор тега"
+// @Param limit query integer false "Лимит"
+// @Param offset query integer false "Оффсет"
+// @Success 200 {array} models.User "OK"
+// @Failure 500 {string} string "Внутренняя ошибка сервера"
+// @Router /users [get]
 func (h *Handler) getAllUsers(ctx *gin.Context) {
 	limit, err := strconv.Atoi(ctx.Query("limit"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
@@ -205,6 +251,15 @@ func (h *Handler) getAllUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, users)
 }
 
+// @Summary Удаление пользователя по идентификатору
+// @Description Этот эндпоинт предназначен для удаления пользователя по его идентификатору.
+// @Tags user
+// @ID delete-user
+// @Param id path integer true "Идентификатор пользователя"
+// @Success 204 {string} string "Пользователь успешно удален"
+// @Failure 404 {string} string "Пользователь не найден"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
+// @Router /users/{id} [delete]
 func (h *Handler) deleteUser(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -238,5 +293,5 @@ func (h *Handler) deleteUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }

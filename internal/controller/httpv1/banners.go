@@ -13,7 +13,7 @@ import (
 )
 
 func (h *Handler) initBannersRoutes(api *gin.RouterGroup) {
-	banners := api.Group("", h.userIdentity) // add auth middleware for admin
+	banners := api.Group("/banner", h.userIdentity) // add auth middleware for admin
 	banners.Use(metrics.PrometheusMiddleware())
 	{
 		banners.POST("", h.bannersAdd)
@@ -39,7 +39,25 @@ type bannersAddInput struct {
 }
 
 //TODO refactor response json like in api docs
+// TODO generate swag docs
 
+// CreateBanner creates a new banner.
+//
+// @Summary Creates a new banner.
+// @Description This endpoint allows an admin to create a new banner.
+// @Tags banner
+// @ID create-banner
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param Authorization header string true "Bearer token for authentication"
+// @Param body body bannersAddInput true "Banner creation request"
+// @Success 201 {object} int "Banner created successfully"
+// @Failure 400 {object} errorResponse "Invalid data provided"
+// @Failure 401 {string} string "Unauthorized access"
+// @Failure 403 {string} string "Forbidden access"
+// @Failure 500 {object} errorResponse "Internal server error"
+// @Router /banner [post]
 func (h *Handler) bannersAdd(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
@@ -63,7 +81,7 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 		return
 	}
 
-	err := h.bannersService.AddBanner(ctx, service.BannerAddInput{
+	bannerId, err := h.bannersService.AddBanner(ctx, service.BannerAddInput{
 		Title:    banner.Content.Title,
 		Text:     banner.Content.Text,
 		URL:      banner.Content.URL,
@@ -81,9 +99,26 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	ctx.JSON(http.StatusCreated, gin.H{"banner_id": bannerId})
 }
 
+// @Summary Обновление содержимого баннера
+// @Description Этот эндпоинт предназначен для обновления содержимого баннера по его идентификатору.
+// @Tags banner
+// @ID update-banner
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param Authorization header string true "Bearer token for authentication"
+// @Param id path integer true "Идентификатор баннера"
+// @Param body body service.bannersUpdateInput true "Запрос на обновление баннера"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} errorResponse "Некорректные данные"
+// @Failure 401 {string} string "Пользователь не авторизован"
+// @Failure 403 {string} string "Пользователь не имеет доступа"
+// @Failure 404 {string} string "Баннер не найден"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
+// @Router /banner/{id} [patch]
 func (h *Handler) bannersUpdate(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
@@ -113,6 +148,22 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+// DELETE /banner/{id}
+// Удаление баннера по идентификатору
+// @Summary Удаление баннера по идентификатору
+// @Description Этот эндпоинт предназначен для удаления баннера по его идентификатору.
+// @Tags banner
+// @ID delete-banner
+// @Security Bearer
+// @Param Authorization header string true "Bearer token for authentication"
+// @Param id path integer true "Идентификатор баннера"
+// @Success 204 {string} string "Баннер успешно удален"
+// @Failure 400 {object} errorResponse "Некорректные данные"
+// @Failure 401 {string} string "Пользователь не авторизован"
+// @Failure 403 {string} string "Пользователь не имеет доступа"
+// @Failure 404 {string} string "Баннер для тэга не найден"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
+// @Router /banner/{id} [delete]
 func (h *Handler) bannersDelete(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
@@ -157,9 +208,26 @@ func (h *Handler) bannersDelete(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }
 
+// @Summary Получение всех баннеров c фильтрацией по фиче и/или тегу
+// @Tags banner
+// @Description Этот эндпоинт предназначен для получения всех баннеров с возможностью фильтрации по идентификатору фичи и/или тега.
+// @ID get-banners
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param Authorization header string true "Bearer token for authentication"
+// @Param feature_id query integer false "Идентификатор фичи"
+// @Param tag_id query integer false "Идентификатор тега"
+// @Param limit query integer false "Лимит"
+// @Param offset query integer false "Оффсет"
+// @Success 200 {array} models.AdminBanner "OK"
+// @Failure 401 {string} string "Пользователь не авторизован"
+// @Failure 403 {string} string "Пользователь не имеет доступа"
+// @Failure 500 {string} string "Внутренняя ошибка сервера"
+// @Router /banner [get]
 func (h *Handler) bannersGetAll(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
@@ -246,24 +314,26 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, banners)
 }
 
-//var (
-//	RequestDuration = prometheus.NewHistogramVec(
-//		prometheus.HistogramOpts{
-//			Name: "http_request_duration_seconds",
-//			Help: "Duration of HTTP requests.",
-//		},
-//		[]string{"method"},
-//	)
-//)
-
+// @Summary Получение баннера для пользователя
+// @Tags banner
+// @Description This endpoint allows a user to get a banner based on their tag and feature ID.
+// @ID get-user-banner
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param Authorization header string true "Bearer token for authentication"
+// @Param tag_id query integer true "User tag"
+// @Param feature_id query integer true "Feature ID"
+// @Param use_last_revision query boolean false "Get the latest information" default(false)
+// @Param token header string true "User token"
+// @Success 200 {object} models.Banner "User banner"
+// @Failure 400 {object} errorResponse "Invalid data provided"
+// @Failure 401 {string} string "Unauthorized access"
+// @Failure 403 {string} string "Forbidden access"
+// @Failure 404 {string} string "Banner not found"
+// @Failure 500 {object} errorResponse "Internal server error"
+// @Router /user_banner [get]
 func (h *Handler) getUserBanner(ctx *gin.Context) {
-	//start := time.Now()
-	//defer func() {
-	//	method := ctx.Request.Method
-	//	elapsed := time.Since(start).Seconds()
-	//	RequestDuration.WithLabelValues(method).Observe(elapsed)
-	//}()
-
 	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
 		h.logger.Error().Err(err).

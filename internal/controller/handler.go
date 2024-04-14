@@ -1,13 +1,17 @@
 package controller
 
 import (
+	docs "avito-test2024-spring/docs"
 	"avito-test2024-spring/internal/controller/httpv1"
 	"avito-test2024-spring/internal/controller/metrics"
 	"avito-test2024-spring/internal/service"
 	"avito-test2024-spring/pkg/auth"
 	"avito-test2024-spring/pkg/cache"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"net/http"
 )
 
@@ -47,8 +51,10 @@ func (h *Handler) Init(host string, port string) *gin.Engine {
 	})
 
 	metrics.Init()
-
 	router.GET("/metrics", metrics.PrometheusHandler())
+
+	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s", host, port)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	h.initAPI(router)
 
