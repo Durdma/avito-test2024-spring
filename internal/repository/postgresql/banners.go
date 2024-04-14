@@ -53,10 +53,12 @@ func (r *BannersRepo) Create(ctx context.Context, banner models.AdminBanner) (in
 		return -1, err
 	}
 
-	err = r.insertIntoBannersTags(ctx, tx, id, banner.Tags, banner.Feature.ID)
-	if err != nil {
-		tx.Rollback(ctx)
-		return -1, err
+	if banner.Feature.ID != 0 {
+		err = r.insertIntoBannersTags(ctx, tx, id, banner.Tags, banner.Feature.ID)
+		if err != nil {
+			tx.Rollback(ctx)
+			return -1, err
+		}
 	}
 
 	tx.Commit(ctx)

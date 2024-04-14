@@ -80,19 +80,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "403": {
                         "description": "Пользователь не имеет доступа",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     }
                 }
@@ -149,13 +149,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized access",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden access",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "500": {
@@ -212,19 +212,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "403": {
                         "description": "Пользователь не имеет доступа",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "404": {
                         "description": "Баннер для тэга не найден",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "500": {
@@ -294,19 +294,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "403": {
                         "description": "Пользователь не имеет доступа",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "404": {
                         "description": "Баннер не найден",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "500": {
@@ -407,7 +407,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Фича успешно создана",
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     "401": {
@@ -583,7 +583,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Тэг успешно создан",
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     "401": {
@@ -735,19 +735,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized access",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden access",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "404": {
                         "description": "Banner not found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/httpv1.errorResponse"
                         }
                     },
                     "500": {

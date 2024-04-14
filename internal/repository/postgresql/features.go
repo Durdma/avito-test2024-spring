@@ -19,22 +19,24 @@ func NewFeaturesRepo(db *pgxpool.Pool) *FeaturesRepo {
 	}
 }
 
-func (r *FeaturesRepo) Create(ctx context.Context) error {
-	query := `INSERT INTO features default values`
+func (r *FeaturesRepo) Create(ctx context.Context) (int, error) {
+	var id int
+
+	query := `INSERT INTO features default values RETURNING id`
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	_, err = tx.Exec(ctx, query)
+	err = tx.QueryRow(ctx, query).Scan(&id)
 	if err != nil {
 		tx.Rollback(ctx)
-		return err
+		return -1, err
 	}
 
 	tx.Commit(ctx)
-	return err
+	return id, err
 }
 
 func (r *FeaturesRepo) Delete(ctx context.Context, featureId int) error {
@@ -48,7 +50,15 @@ func (r *FeaturesRepo) Delete(ctx context.Context, featureId int) error {
 		return err
 	}
 
-	res, err := tx.Exec(ctx, query, args)
+	subQuery := `UPDATE banners SET fk_feature_id=null where fk_feature_id = @featureId`
+
+	res, err := tx.Exec(ctx, subQuery, args)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	res, err = tx.Exec(ctx, query, args)
 	if err != nil {
 		tx.Rollback(ctx)
 		return err

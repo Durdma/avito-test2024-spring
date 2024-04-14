@@ -40,9 +40,6 @@ type bannersAddInput struct {
 	IsActive bool              `json:"is_active" binding:"required"`
 }
 
-//TODO refactor response json like in api docs
-// TODO generate swag docs
-
 // CreateBanner creates a new banner.
 //
 // @Summary Creates a new banner.
@@ -56,29 +53,21 @@ type bannersAddInput struct {
 // @Param body body bannersAddInput true "Banner creation request"
 // @Success 201 {object} int "Banner created successfully"
 // @Failure 400 {object} errorResponse "Invalid data provided"
-// @Failure 401 {string} string "Unauthorized access"
-// @Failure 403 {string} string "Forbidden access"
+// @Failure 401 {object} errorResponse "Unauthorized access"
+// @Failure 403 {object} errorResponse "Forbidden access"
 // @Failure 500 {object} errorResponse "Internal server error"
 // @Router /banner [post]
 func (h *Handler) bannersAdd(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
-		h.logger.Error().
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusForbidden).
-			Msg("not admin")
+		h.logger.Error(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
 	var banner bannersAddInput
 	if err := json.NewDecoder(ctx.Request.Body).Decode(&banner); err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("error while unmarshalling json")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -92,11 +81,7 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 		IsActive: banner.IsActive,
 	})
 	if err.Status != 0 {
-		h.logger.Error().Err(errors.New(err.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", err.Status).
-			Msg(err.Error)
+		h.logger.Error(ctx, err.Status, err.Error)
 		newErrorResponse(ctx, err.Status, err.Error)
 		return
 	}
@@ -116,19 +101,15 @@ func (h *Handler) bannersAdd(ctx *gin.Context) {
 // @Param body body service.bannersUpdateInput true "Запрос на обновление баннера"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} errorResponse "Некорректные данные"
-// @Failure 401 {string} string "Пользователь не авторизован"
-// @Failure 403 {string} string "Пользователь не имеет доступа"
-// @Failure 404 {string} string "Баннер не найден"
+// @Failure 401 {object} errorResponse "Пользователь не авторизован"
+// @Failure 403 {object} errorResponse "Пользователь не имеет доступа"
+// @Failure 404 {object} errorResponse "Баннер не найден"
 // @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
 // @Router /banner/{id} [patch]
 func (h *Handler) bannersUpdate(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
-		h.logger.Error().
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusForbidden).
-			Msg("not admin")
+		h.logger.Error(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
@@ -138,11 +119,7 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 
 	err := h.bannersService.UpdateBanner(serviceCtx)
 	if err.Status != 0 {
-		h.logger.Error().Err(errors.New(err.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", err.Status).
-			Msg(err.Error)
+		h.logger.Error(ctx, err.Status, err.Error)
 		newErrorResponse(ctx, err.Status, err.Error)
 		return
 	}
@@ -161,41 +138,29 @@ func (h *Handler) bannersUpdate(ctx *gin.Context) {
 // @Param id path integer true "Идентификатор баннера"
 // @Success 204 {string} string "Баннер успешно удален"
 // @Failure 400 {object} errorResponse "Некорректные данные"
-// @Failure 401 {string} string "Пользователь не авторизован"
-// @Failure 403 {string} string "Пользователь не имеет доступа"
-// @Failure 404 {string} string "Баннер для тэга не найден"
+// @Failure 401 {object} errorResponse "Пользователь не авторизован"
+// @Failure 403 {object} errorResponse "Пользователь не имеет доступа"
+// @Failure 404 {object} errorResponse "Баннер для тэга не найден"
 // @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
 // @Router /banner/{id} [delete]
 func (h *Handler) bannersDelete(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
-		h.logger.Error().
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusForbidden).
-			Msg("not admin")
+		h.logger.Error(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
 	bannerId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	errResponse := h.bannersService.DeleteBanner(ctx, bannerId)
 	if errResponse.Status != 0 {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResponse.Status).
-			Msg(errResponse.Error)
+		h.logger.Error(ctx, errResponse.Status, errResponse.Error)
 		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
@@ -216,29 +181,21 @@ func (h *Handler) bannersDelete(ctx *gin.Context) {
 // @Param limit query integer false "Лимит"
 // @Param offset query integer false "Оффсет"
 // @Success 200 {array} models.AdminBanner "OK"
-// @Failure 401 {string} string "Пользователь не авторизован"
-// @Failure 403 {string} string "Пользователь не имеет доступа"
-// @Failure 500 {string} string "Внутренняя ошибка сервера"
+// @Failure 401 {object} errorResponse "Пользователь не авторизован"
+// @Failure 403 {object} errorResponse "Пользователь не имеет доступа"
+// @Failure 500 {object} errorResponse "Внутренняя ошибка сервера"
 // @Router /banner [get]
 func (h *Handler) bannersGetAll(ctx *gin.Context) {
 	isAdmin := ctx.Value(userCtx).(bool)
 	if !isAdmin {
-		h.logger.Error().
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusForbidden).
-			Msg("not admin")
+		h.logger.Error(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		newErrorResponse(ctx, http.StatusForbidden, "Пользователь не имеет доступа")
 		return
 	}
 
 	limit, err := strconv.Atoi(ctx.Query("limit"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid limit format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -249,11 +206,7 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 
 	offset, err := strconv.Atoi(ctx.Query("offset"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("offset") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid offset format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -264,11 +217,7 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 
 	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid tag_id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -279,11 +228,7 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 
 	featureId, err := strconv.Atoi(ctx.Query("feature_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("feature_id") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid feature_id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -294,11 +239,7 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 
 	banners, errResponse := h.bannersService.GetAllBanners(ctx, featureId, tagId, limit, offset)
 	if errResponse.Status != 0 {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResponse.Status).
-			Msg(errResponse.Error)
+		h.logger.Error(ctx, errResponse.Status, errResponse.Error)
 		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}
@@ -319,50 +260,34 @@ func (h *Handler) bannersGetAll(ctx *gin.Context) {
 // @Param use_last_revision query boolean false "Get the latest information" default(false)
 // @Success 200 {object} models.Banner "User banner"
 // @Failure 400 {object} errorResponse "Invalid data provided"
-// @Failure 401 {string} string "Unauthorized access"
-// @Failure 403 {string} string "Forbidden access"
-// @Failure 404 {string} string "Banner not found"
+// @Failure 401 {object} errorResponse "Unauthorized access"
+// @Failure 403 {object} errorResponse "Forbidden access"
+// @Failure 404 {object} errorResponse "Banner not found"
 // @Failure 500 {object} errorResponse "Internal server error"
 // @Router /user_banner [get]
 func (h *Handler) getUserBanner(ctx *gin.Context) {
 	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid tag_id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if ctx.Query("tag_id") == "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("empty tag_id field")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, "empty tag_id field")
 		return
 	}
 
 	featureId, err := strconv.Atoi(ctx.Query("feature_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("feature_id") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid feature_id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if ctx.Query("feature_id") == "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("empty feature_id")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, "empty tag_id field")
 		return
 	}
@@ -374,11 +299,7 @@ func (h *Handler) getUserBanner(ctx *gin.Context) {
 			lastRevision = true
 		} else {
 			if lastRevisionQuery != "false" {
-				h.logger.Error().Err(err).
-					Str("method", ctx.Request.Method).
-					Str("url", ctx.Request.RequestURI).
-					Int("status_code", http.StatusBadRequest).
-					Msg("invalid last_revision format")
+				h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 				newErrorResponse(ctx, http.StatusBadRequest, "invalid last_revision format")
 				return
 			}
@@ -387,11 +308,7 @@ func (h *Handler) getUserBanner(ctx *gin.Context) {
 
 	banner, errResponse := h.bannersService.GetUserBanner(ctx, featureId, tagId, lastRevision)
 	if errResponse.Status != 0 {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResponse.Status).
-			Msg(errResponse.Error)
+		h.logger.Error(ctx, errResponse.Status, errResponse.Error)
 		newErrorResponse(ctx, errResponse.Status, errResponse.Error)
 		return
 	}

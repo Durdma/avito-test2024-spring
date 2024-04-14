@@ -192,7 +192,6 @@ func (s *BannersService) DeleteBanner(ctx context.Context, bannerId int) models.
 	return models.ErrService{}
 }
 
-// TODO refactor response json banner like api scheme
 func (s *BannersService) GetUserBanner(ctx context.Context, featureId int, tagId int, lastRevision bool) (models.Banner, models.ErrService) {
 	if tagId < 0 {
 		return models.Banner{}, models.NewErrorService(http.StatusBadRequest, "tag_id must be greater or equal to 0")

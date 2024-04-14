@@ -30,40 +30,40 @@ func Run(configPath string) {
 		return
 	}
 
-	logs := logger.InitLogs(cfg.Logger)
+	logs := logger.NewLogs(cfg.Logger)
 
-	logs.Info().Msg("Starting app")
-	logs.Info().Interface("config", cfg).Msg("")
+	logs.Logger.Info().Msg("Starting app")
+	logs.Logger.Info().Interface("config", cfg).Msg("")
 
 	cache := cache2.NewRedisCache(cfg.Cache)
-	logs.Info().Msg("Initialized connection pool Cache")
+	logs.Logger.Info().Msg("Initialized connection pool Cache")
 
 	dbPool := postgresql.NewConnectionPool(cfg.PostgreSQL, logs)
-	logs.Info().Msg("Initialized connection pool DB")
+	logs.Logger.Info().Msg("Initialized connection pool DB")
 
 	repos := repository.NewRepositories(dbPool)
-	logs.Info().Msg("Initialized repos")
+	logs.Logger.Info().Msg("Initialized repos")
 
 	tokenManager, err := auth.NewManager(cfg.JWT.SigningKey)
 	if err != nil {
-		logs.Error().Err(err).Msg("error occured while init of token manager")
+		logs.Logger.Error().Err(err).Msg("error occured while init of token manager")
 	}
-	logs.Info().Msg("Initialized tokenManager")
+	logs.Logger.Info().Msg("Initialized tokenManager")
 
 	services := service.NewServices(repos, tokenManager, cache)
-	logs.Info().Msg("Initialized services")
+	logs.Logger.Info().Msg("Initialized services")
 
 	handlers := controller.NewHandler(services.Banners, services.Tags, services.Features, services.Users, logs, tokenManager, cache)
-	logs.Info().Msg("Initialized handlers")
+	logs.Logger.Info().Msg("Initialized handlers")
 
 	srv := server.NewServer(cfg.HTTP, handlers.Init("localhost", cfg.HTTP.Port))
 	go func() {
 		if err := srv.Run(); err != nil {
-			logs.Error().Err(err).Msg("error occurred while running http server")
+			logs.Logger.Error().Err(err).Msg("error occurred while running http server")
 		}
 	}()
 
-	logs.Info().Msg("server started")
+	logs.Logger.Info().Msg("server started")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
@@ -72,5 +72,5 @@ func Run(configPath string) {
 
 	dbPool.Close()
 
-	logs.Info().Msg("End of app")
+	logs.Logger.Info().Msg("End of app")
 }
