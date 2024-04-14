@@ -17,13 +17,13 @@ type Banners interface {
 }
 
 type Tags interface {
-	AddTag(ctx context.Context) models.ErrService
+	AddTag(ctx context.Context) (int, models.ErrService)
 	DeleteTag(ctx context.Context, tagId int) models.ErrService
 	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, models.ErrService)
 }
 
 type Features interface {
-	AddFeature(ctx context.Context) models.ErrService
+	AddFeature(ctx context.Context) (int, models.ErrService)
 	DeleteFeature(ctx context.Context, featureId int) models.ErrService
 	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, models.ErrService)
 }

@@ -18,14 +18,14 @@ func NewTagsService(repo repository.Tags) *TagsService {
 	}
 }
 
-func (s *TagsService) AddTag(ctx context.Context) models.ErrService {
+func (s *TagsService) AddTag(ctx context.Context) (int, models.ErrService) {
 
-	err := s.repo.Create(ctx)
+	tagId, err := s.repo.Create(ctx)
 	if err != nil {
-		return models.NewErrorService(http.StatusInternalServerError, err.Error())
+		return -1, models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
-	return models.ErrService{}
+	return tagId, models.ErrService{}
 }
 
 func (s *TagsService) DeleteTag(ctx context.Context, tagId int) models.ErrService {

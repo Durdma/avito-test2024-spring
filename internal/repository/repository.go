@@ -18,13 +18,13 @@ type Banners interface {
 }
 
 type Tags interface {
-	Create(ctx context.Context) error
+	Create(ctx context.Context) (int, error)
 	Delete(ctx context.Context, tagId int) error
 	GetAllTags(ctx context.Context, limit int, offset int) ([]models.Tag, error)
 }
 
 type Features interface {
-	Create(ctx context.Context) error
+	Create(ctx context.Context) (int, error)
 	Delete(ctx context.Context, featureId int) error
 	GetAllFeatures(ctx context.Context, limit int, offset int) ([]models.Feature, error)
 }

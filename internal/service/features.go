@@ -18,13 +18,13 @@ func NewFeaturesService(repo repository.Features) *FeaturesService {
 	}
 }
 
-func (s *FeaturesService) AddFeature(ctx context.Context) models.ErrService {
-	err := s.repo.Create(ctx)
+func (s *FeaturesService) AddFeature(ctx context.Context) (int, models.ErrService) {
+	featureId, err := s.repo.Create(ctx)
 	if err != nil {
-		return models.NewErrorService(http.StatusInternalServerError, err.Error())
+		return -1, models.NewErrorService(http.StatusInternalServerError, err.Error())
 	}
 
-	return models.ErrService{}
+	return featureId, models.ErrService{}
 }
 
 func (s *FeaturesService) DeleteFeature(ctx context.Context, featureId int) models.ErrService {

@@ -19,22 +19,24 @@ func NewTagsRepo(db *pgxpool.Pool) *TagsRepo {
 	}
 }
 
-func (r *TagsRepo) Create(ctx context.Context) error {
-	query := `INSERT INTO tags default values`
+func (r *TagsRepo) Create(ctx context.Context) (int, error) {
+	var id int
+
+	query := `INSERT INTO tags default values RETURNING id`
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	_, err = tx.Exec(ctx, query)
+	err = tx.QueryRow(ctx, query).Scan(&id)
 	if err != nil {
 		tx.Rollback(ctx)
-		return err
+		return -1, err
 	}
 
 	tx.Commit(ctx)
-	return err
+	return id, err
 }
 
 func (r *TagsRepo) Delete(ctx context.Context, tagId int) error {
@@ -48,7 +50,15 @@ func (r *TagsRepo) Delete(ctx context.Context, tagId int) error {
 		return err
 	}
 
-	res, err := tx.Exec(ctx, query, args)
+	subQuery := `UPDATE users SET fk_tag_id=null where fk_tag_id = @tagId`
+
+	res, err := tx.Exec(ctx, subQuery, args)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	res, err = tx.Exec(ctx, query, args)
 	if err != nil {
 		tx.Rollback(ctx)
 		return err

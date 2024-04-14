@@ -7,9 +7,9 @@ import (
 	"avito-test2024-spring/internal/service"
 	"avito-test2024-spring/pkg/auth"
 	"avito-test2024-spring/pkg/cache"
+	"avito-test2024-spring/pkg/logger"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"net/http"
@@ -20,13 +20,13 @@ type Handler struct {
 	tagsService     service.Tags
 	featuresService service.Features
 	usersService    service.Users
-	logger          zerolog.Logger
+	logger          *logger.Logs
 	tokenManager    auth.TokenManager
 	cache           cache.Cache
 }
 
 func NewHandler(bannersService service.Banners, tagsService service.Tags,
-	featuresService service.Features, usersService service.Users, logger zerolog.Logger, tokenManager auth.TokenManager,
+	featuresService service.Features, usersService service.Users, logger *logger.Logs, tokenManager auth.TokenManager,
 	cache cache.Cache) *Handler {
 	return &Handler{
 		bannersService:  bannersService,

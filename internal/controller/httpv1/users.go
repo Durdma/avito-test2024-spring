@@ -26,8 +26,6 @@ type UserInput struct {
 	TagId   int  `json:"tag_id,omitempty"`
 }
 
-// TODO swagger refactor after errorResponse reimplemented
-
 // @Summary Creates a new user
 // @Description Создание нового пользователя
 // @Tags user
@@ -41,11 +39,7 @@ type UserInput struct {
 func (h *Handler) addUser(ctx *gin.Context) {
 	var user UserInput
 	if err := json.NewDecoder(ctx.Request.Body).Decode(&user); err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("error while unmarshalling json")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -55,11 +49,7 @@ func (h *Handler) addUser(ctx *gin.Context) {
 		IsAdmin: user.IsAdmin,
 	})
 	if errResp.Status != 0 {
-		h.logger.Error().Err(errors.New(errResp.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResp.Status).
-			Msg(errResp.Error)
+		h.logger.Error(ctx, errResp.Status, errResp.Error)
 		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
@@ -82,22 +72,14 @@ func (h *Handler) addUser(ctx *gin.Context) {
 func (h *Handler) updateUser(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var userInput UserInput
 	if err := json.NewDecoder(ctx.Request.Body).Decode(&userInput); err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("error while unmarshalling json")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -110,11 +92,7 @@ func (h *Handler) updateUser(ctx *gin.Context) {
 
 	errResp := h.usersService.UpdateUser(ctx, user)
 	if errResp.Status != 0 {
-		h.logger.Error().Err(errors.New(errResp.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResp.Status).
-			Msg(errResp.Error)
+		h.logger.Error(ctx, errResp.Status, errResp.Error)
 		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
@@ -136,22 +114,14 @@ func (h *Handler) updateUser(ctx *gin.Context) {
 func (h *Handler) getUserById(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	user, errResp := h.usersService.GetUserById(ctx, userId)
 	if errResp.Status != 0 {
-		h.logger.Error().Err(errors.New(errResp.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResp.Status).
-			Msg(errResp.Error)
+		h.logger.Error(ctx, errResp.Status, errResp.Error)
 		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
@@ -173,11 +143,7 @@ func (h *Handler) getUserById(ctx *gin.Context) {
 func (h *Handler) getAllUsers(ctx *gin.Context) {
 	limit, err := strconv.Atoi(ctx.Query("limit"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("limit") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid limit format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -188,11 +154,7 @@ func (h *Handler) getAllUsers(ctx *gin.Context) {
 
 	offset, err := strconv.Atoi(ctx.Query("offset"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("offset") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid offset format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -203,11 +165,7 @@ func (h *Handler) getAllUsers(ctx *gin.Context) {
 
 	tagId, err := strconv.Atoi(ctx.Query("tag_id"))
 	if err != nil && errors.Is(err, strconv.ErrSyntax) && ctx.Query("tag_id") != "" {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid tag_id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -218,11 +176,7 @@ func (h *Handler) getAllUsers(ctx *gin.Context) {
 
 	users, errResp := h.usersService.GetAllUsers(ctx, tagId, limit, offset)
 	if errResp.Status != 0 {
-		h.logger.Error().Err(errors.New(errResp.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResp.Status).
-			Msg(errResp.Error)
+		h.logger.Error(ctx, errResp.Status, errResp.Error)
 		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}
@@ -242,22 +196,14 @@ func (h *Handler) getAllUsers(ctx *gin.Context) {
 func (h *Handler) deleteUser(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		h.logger.Error().Err(err).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", http.StatusBadRequest).
-			Msg("invalid id format")
+		h.logger.Error(ctx, http.StatusBadRequest, err.Error())
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	errResp := h.usersService.DeleteUser(ctx, userId)
 	if errResp.Status != 0 {
-		h.logger.Error().Err(errors.New(errResp.Error)).
-			Str("method", ctx.Request.Method).
-			Str("url", ctx.Request.RequestURI).
-			Int("status_code", errResp.Status).
-			Msg(errResp.Error)
+		h.logger.Error(ctx, errResp.Status, errResp.Error)
 		newErrorResponse(ctx, errResp.Status, errResp.Error)
 		return
 	}

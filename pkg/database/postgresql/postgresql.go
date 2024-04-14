@@ -2,28 +2,28 @@ package postgresql
 
 import (
 	"avito-test2024-spring/internal/config"
+	"avito-test2024-spring/pkg/logger"
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rs/zerolog"
 	"time"
 )
 
 const timeout = 10 * time.Second
 
-func NewConnectionPool(cfg config.PostgreSQLConfig, logs zerolog.Logger) *pgxpool.Pool {
+func NewConnectionPool(cfg config.PostgreSQLConfig, logs *logger.Logs) *pgxpool.Pool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	pool, err := pgxpool.New(ctx, getConnectionString(cfg)) // TODO implement connection string
 	if err != nil {
-		logs.Error().Msg("error while connecting to DB")
+		logs.Logger.Error().Msg("error while connecting to DB")
 		return nil
 	}
 
 	err = pool.Ping(context.Background())
 	if err != nil {
-		logs.Error().Msg("error while testing DB connection")
+		logs.Logger.Error().Msg("error while testing DB connection")
 		return nil
 	}
 
